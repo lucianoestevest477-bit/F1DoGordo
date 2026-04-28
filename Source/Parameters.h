@@ -40,6 +40,11 @@ namespace Parameters
     inline constexpr auto compSidechainHpHz = "compSidechainHpHz";
     inline constexpr auto compRevision = "compRevision";
     inline constexpr auto compNoiseMode = "compNoiseMode";
+    inline constexpr auto airAmount = "airAmount";
+    inline constexpr auto airFrequencyHz = "airFrequencyHz";
+    inline constexpr auto airDrive = "airDrive";
+    inline constexpr auto airTone = "airTone";
+    inline constexpr auto airOutputDb = "airOutputDb";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

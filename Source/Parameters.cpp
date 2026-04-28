@@ -185,5 +185,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
     params.push_back(makeChoiceParameter(compRevision, "Compressor Revision", { "Clean", "Blue", "Black", "Hot" }, 0));
     params.push_back(makeChoiceParameter(compNoiseMode, "Compressor Noise", { "Off", "Low", "High" }, 0));
 
+    // Air Exciter parameters: active DSP in AirExciterModule. Defaults keep the module neutral.
+    params.push_back(makePercentParameter(airAmount, "Air Amount", 0.0f));
+    params.push_back(makeFrequencyParameter(airFrequencyHz, "Air Frequency", 2000.0f, 16000.0f, 8000.0f, 7000.0f));
+    params.push_back(makePercentParameter(airDrive, "Air Drive", 0.0f));
+    params.push_back(makePercentParameter(airTone, "Air Tone", 0.5f));
+    params.push_back(makeGainParameter(airOutputDb, "Air Output", -12.0f, 12.0f));
+
     return { params.begin(), params.end() };
 }

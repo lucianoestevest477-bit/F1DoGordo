@@ -42,6 +42,16 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
         apvts.getRawParameterValue(Parameters::compRevision),
         apvts.getRawParameterValue(Parameters::compNoiseMode)
     });
+
+    airExciter.setParameters({
+        apvts.getRawParameterValue(Parameters::airEnabled),
+        apvts.getRawParameterValue(Parameters::airAmount),
+        apvts.getRawParameterValue(Parameters::airFrequencyHz),
+        apvts.getRawParameterValue(Parameters::airDrive),
+        apvts.getRawParameterValue(Parameters::airTone),
+        apvts.getRawParameterValue(Parameters::airOutputDb),
+        apvts.getRawParameterValue(Parameters::airMix)
+    });
 }
 
 void F1DoGordoAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -97,8 +107,8 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 
     if (! bypassed)
     {
-        // Current audio-affecting controls: global gain/bypass, Channel/EQ and FET compressor.
-        // Air, Delay and Reverb remain neutral placeholders until their DSP pass.
+        // Current audio-affecting controls: global gain/bypass, Channel/EQ, FET compressor and Air Exciter.
+        // Delay and Reverb remain neutral placeholders until their DSP pass.
         const auto inputGain = juce::Decibels::decibelsToGain(inputGainDbParam != nullptr ? inputGainDbParam->load() : 0.0f);
         const auto outputGain = juce::Decibels::decibelsToGain(outputGainDbParam != nullptr ? outputGainDbParam->load() : 0.0f);
 

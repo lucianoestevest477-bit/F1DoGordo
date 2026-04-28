@@ -15,8 +15,8 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
-    // GLOBAL screen control map: INPUT/OUTPUT and CHANNEL/TONE affect audio now.
-    // PUNCH/AIR/ECHO/SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
+    // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH and AIR affect audio now.
+    // ECHO/SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::outputGainDb, dashboard.outputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelMix));
@@ -53,6 +53,14 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compRevision, dashboard.compRevision));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compNoiseMode, dashboard.compNoise));
 
+    // AIR page control map: these parameters are processed by AirExciterModule.
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airAmount, dashboard.airPageAmount));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airFrequencyHz, dashboard.airFrequency));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDrive, dashboard.airPageDrive));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airTone, dashboard.airPageTone));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMix, dashboard.airPageMix));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airOutputDb, dashboard.airPageOutput));
+
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::globalBypass, dashboard.globalBypass));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::channelEnabled, dashboard.channelEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compEnabled));
@@ -61,6 +69,7 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbEnabled, dashboard.reverbEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::phaseInvert, dashboard.channelPhaseInvert));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compPageEnabled));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::airEnabled, dashboard.airPageEnabled));
 
     startTimerHz(24);
 }

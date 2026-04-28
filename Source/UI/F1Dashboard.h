@@ -61,12 +61,21 @@ public:
     GordoKnob compNoise { "NOISE" };
     GordoButton compPageEnabled { "ON" };
 
+    GordoKnob airPageAmount { "AMOUNT" };
+    GordoKnob airFrequency { "FREQ" };
+    GordoKnob airPageDrive { "DRIVE" };
+    GordoKnob airPageTone { "TONE" };
+    GordoKnob airPageMix { "MIX" };
+    GordoKnob airPageOutput { "OUTPUT" };
+    GordoButton airPageEnabled { "ON" };
+
 private:
     enum class Page
     {
         global,
         channel,
-        comp
+        comp,
+        air
     };
 
     void setPage(Page newPage);
@@ -74,6 +83,7 @@ private:
     void layoutGlobalPage(juce::Rectangle<int> cockpit);
     void layoutChannelPage(juce::Rectangle<int> cockpit);
     void layoutCompPage(juce::Rectangle<int> cockpit);
+    void layoutAirPage(juce::Rectangle<int> cockpit);
 
     GordoButton tabGlobal { "GLOBAL" };
     GordoButton tabChannel { "CHANNEL" };

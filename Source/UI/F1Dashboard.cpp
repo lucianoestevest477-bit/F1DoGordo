@@ -15,11 +15,15 @@ F1Dashboard::F1Dashboard()
                         &compSidechainHp, &compRevision, &compNoise })
         addAndMakeVisible(*knob);
 
+    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+        addAndMakeVisible(*knob);
+
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
     addAndMakeVisible(channelPhaseInvert);
     addAndMakeVisible(compPageEnabled);
+    addAndMakeVisible(airPageEnabled);
 
     for (auto* tab : tabs)
     {
@@ -30,7 +34,7 @@ F1Dashboard::F1Dashboard()
     tabGlobal.onClick = [this] { setPage(Page::global); };
     tabChannel.onClick = [this] { setPage(Page::channel); };
     tabComp.onClick = [this] { setPage(Page::comp); };
-    tabAir.onClick = [this] { setPage(Page::global); };
+    tabAir.onClick = [this] { setPage(Page::air); };
     tabDelay.onClick = [this] { setPage(Page::global); };
     tabReverb.onClick = [this] { setPage(Page::global); };
     tabRouting.onClick = [this] { setPage(Page::global); };
@@ -90,7 +94,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::red().withAlpha(0.9f));
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
-    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp;
+    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air;
     auto display = compactDisplay
                        ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
                        : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
@@ -111,6 +115,11 @@ void F1Dashboard::paint(juce::Graphics& g)
     {
         title = "FET COMP";
         route = "INPUT > THRESHOLD > DETECTOR HPF > FET GAIN > MIX";
+    }
+    else if (activePage == Page::air)
+    {
+        title = "AIR EXCITER";
+        route = "HIGH SPLIT > HARMONICS > TONE > MIX";
     }
 
     g.setColour(F1Theme::text());
@@ -148,6 +157,8 @@ void F1Dashboard::resized()
         layoutChannelPage(cockpit);
     else if (activePage == Page::comp)
         layoutCompPage(cockpit);
+    else if (activePage == Page::air)
+        layoutAirPage(cockpit);
     else
         layoutGlobalPage(cockpit);
 
@@ -162,6 +173,7 @@ void F1Dashboard::setPage(Page newPage)
     tabGlobal.setToggleState(activePage == Page::global, juce::dontSendNotification);
     tabChannel.setToggleState(activePage == Page::channel, juce::dontSendNotification);
     tabComp.setToggleState(activePage == Page::comp, juce::dontSendNotification);
+    tabAir.setToggleState(activePage == Page::air, juce::dontSendNotification);
     updateControlVisibility();
     resized();
     repaint();
@@ -172,6 +184,7 @@ void F1Dashboard::updateControlVisibility()
     const auto onGlobal = activePage == Page::global;
     const auto onChannel = activePage == Page::channel;
     const auto onComp = activePage == Page::comp;
+    const auto onAir = activePage == Page::air;
 
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         knob->setVisible(onGlobal);
@@ -185,6 +198,9 @@ void F1Dashboard::updateControlVisibility()
                         &compSidechainHp, &compRevision, &compNoise })
         knob->setVisible(onComp);
 
+    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+        knob->setVisible(onAir);
+
     globalBypass.setVisible(onGlobal);
     channelEnabled.setVisible(onGlobal);
     compEnabled.setVisible(onGlobal);
@@ -193,6 +209,7 @@ void F1Dashboard::updateControlVisibility()
     reverbEnabled.setVisible(onGlobal);
     channelPhaseInvert.setVisible(onChannel);
     compPageEnabled.setVisible(onComp);
+    airPageEnabled.setVisible(onAir);
 }
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
@@ -307,4 +324,31 @@ void F1Dashboard::layoutCompPage(juce::Rectangle<int> cockpit)
     }
 
     compPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+}
+
+void F1Dashboard::layoutAirPage(juce::Rectangle<int> cockpit)
+{
+    auto controls = cockpit.reduced(34, 0);
+    controls.removeFromTop(104);
+    controls.removeFromBottom(74);
+
+    constexpr auto knobWidth = 118;
+    constexpr auto knobHeight = 112;
+    constexpr auto buttonWidth = 116;
+    constexpr auto buttonHeight = 48;
+    constexpr auto gapX = 10;
+    constexpr auto gapY = 18;
+
+    auto topRow = controls.removeFromTop(knobHeight);
+    const auto topRowWidth = 6 * knobWidth + 5 * gapX;
+    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
+
+    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+    {
+        knob->setBounds(top.removeFromLeft(knobWidth));
+        top.removeFromLeft(gapX);
+    }
+
+    controls.removeFromTop(gapY);
+    airPageEnabled.setBounds(controls.removeFromTop(buttonHeight).withSizeKeepingCentre(buttonWidth, buttonHeight));
 }
