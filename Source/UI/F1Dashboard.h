@@ -13,19 +13,20 @@ public:
     F1Dashboard();
 
     void setMeterLevels(float input, float output, float gainReduction);
+    void setModuleStates(bool channelOn, bool compOn, bool airOn, bool delayOn, bool reverbOn);
     void paint(juce::Graphics& g) override;
     void resized() override;
 
     GordoKnob inputGain { "INPUT" };
     GordoKnob outputGain { "OUTPUT" };
-    GordoKnob channelMix { "CHANNEL" };
-    GordoKnob compMix { "COMP" };
+    GordoKnob channelMix { "TONE" };
+    GordoKnob compMix { "PUNCH" };
     GordoKnob airMix { "AIR" };
-    GordoKnob delaySend { "DELAY" };
-    GordoKnob reverbSend { "REVERB" };
+    GordoKnob delaySend { "ECHO" };
+    GordoKnob reverbSend { "SPACE" };
     GordoKnob masterWidth { "WIDTH" };
 
-    GordoButton globalBypass { "GLOBAL" };
+    GordoButton globalBypass { "BYPASS" };
     GordoButton channelEnabled { "CHANNEL" };
     GordoButton compEnabled { "COMP" };
     GordoButton airEnabled { "AIR" };

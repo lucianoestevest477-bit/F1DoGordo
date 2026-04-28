@@ -15,6 +15,9 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
+    // GLOBAL screen control map:
+    // INPUT=inputGainDb and OUTPUT=outputGainDb affect audio now.
+    // TONE/PUNCH/AIR/ECHO/SPACE/WIDTH are APVTS-wired macro controls reserved for future DSP modules.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::outputGainDb, dashboard.outputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelMix));
@@ -53,5 +56,10 @@ void F1DoGordoAudioProcessorEditor::timerCallback()
     const auto gr = juce::jlimit(0.0f, 1.0f, std::abs(audioProcessor.getGainReductionDb()) / 24.0f);
 
     dashboard.setMeterLevels(input, output, gr);
+    dashboard.setModuleStates(audioProcessor.apvts.getRawParameterValue(Parameters::channelEnabled)->load() > 0.5f,
+                              audioProcessor.apvts.getRawParameterValue(Parameters::compEnabled)->load() > 0.5f,
+                              audioProcessor.apvts.getRawParameterValue(Parameters::airEnabled)->load() > 0.5f,
+                              audioProcessor.apvts.getRawParameterValue(Parameters::delayEnabled)->load() > 0.5f,
+                              audioProcessor.apvts.getRawParameterValue(Parameters::reverbEnabled)->load() > 0.5f);
     topBar.setCpuText("CPU --");
 }

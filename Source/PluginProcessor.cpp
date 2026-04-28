@@ -65,6 +65,9 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 
     if (! bypassed)
     {
+        // Current audio-affecting controls: inputGainDb, outputGainDb and globalBypass.
+        // Mix/send/width and module enable parameters are APVTS-wired for UI/host automation;
+        // the placeholder modules stay neutral until their DSP is implemented.
         const auto inputGain = juce::Decibels::decibelsToGain(inputGainDbParam != nullptr ? inputGainDbParam->load() : 0.0f);
         const auto outputGain = juce::Decibels::decibelsToGain(outputGainDbParam != nullptr ? outputGainDbParam->load() : 0.0f);
 

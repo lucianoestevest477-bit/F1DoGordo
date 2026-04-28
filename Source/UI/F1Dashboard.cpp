@@ -33,6 +33,15 @@ void F1Dashboard::setMeterLevels(float input, float output, float gainReduction)
     gainReductionMeter.setLevel(gainReduction);
 }
 
+void F1Dashboard::setModuleStates(bool channelOn, bool compOn, bool airOn, bool delayOn, bool reverbOn)
+{
+    moduleLeds[0].setOn(channelOn);
+    moduleLeds[1].setOn(compOn);
+    moduleLeds[2].setOn(airOn);
+    moduleLeds[3].setOn(delayOn);
+    moduleLeds[4].setOn(reverbOn);
+}
+
 void F1Dashboard::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
@@ -88,15 +97,15 @@ void F1Dashboard::resized()
     auto topKnobs = cockpit.removeFromTop(150);
     auto bottomKnobs = cockpit.removeFromBottom(150);
 
-    inputGain.setBounds(topKnobs.removeFromLeft(130));
-    outputGain.setBounds(topKnobs.removeFromRight(130));
-    channelMix.setBounds(topKnobs.removeFromLeft(130));
-    masterWidth.setBounds(topKnobs.removeFromRight(130));
+    inputGain.setBounds(topKnobs.removeFromLeft(136));
+    outputGain.setBounds(topKnobs.removeFromRight(136));
+    channelMix.setBounds(topKnobs.removeFromLeft(136));
+    masterWidth.setBounds(topKnobs.removeFromRight(136));
 
-    delaySend.setBounds(bottomKnobs.removeFromLeft(130));
-    reverbSend.setBounds(bottomKnobs.removeFromRight(130));
-    compMix.setBounds(bottomKnobs.removeFromLeft(130));
-    airMix.setBounds(bottomKnobs.removeFromRight(130));
+    delaySend.setBounds(bottomKnobs.removeFromLeft(136));
+    reverbSend.setBounds(bottomKnobs.removeFromRight(136));
+    compMix.setBounds(bottomKnobs.removeFromLeft(136));
+    airMix.setBounds(bottomKnobs.removeFromRight(136));
 
     auto switchArea = cockpit.withSizeKeepingCentre(430, 64);
     globalBypass.setBounds(switchArea.removeFromLeft(82).reduced(4, 12));
