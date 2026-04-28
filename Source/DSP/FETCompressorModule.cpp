@@ -5,7 +5,6 @@
 namespace
 {
     constexpr auto maxSidechainChannels = 2;
-    constexpr auto thresholdDbClean = -18.0f;
     constexpr auto minDetectorDb = -100.0f;
 
     float coefficientForTime(double sampleRate, float timeSeconds) noexcept
@@ -56,6 +55,8 @@ void FETCompressorModule::reset()
     detectorEnvelope = 0.0f;
     displayedGainReductionDb = 0.0f;
     gainReductionDb.store(0.0f);
+    inputPeak.store(0.0f);
+    outputPeak.store(0.0f);
 
     if (sampleRate > 0.0)
         updateSidechainFilter(getParameterValue(parameters.compSidechainHpHz, 90.0f));
@@ -73,8 +74,10 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
 
     if (! enabled || targetMix <= 0.0001f)
     {
-        displayedGainReductionDb *= 0.85f;
-        gainReductionDb.store(displayedGainReductionDb);
+        storeBypassedMeterLevels(buffer);
+        detectorEnvelope = 0.0f;
+        displayedGainReductionDb = 0.0f;
+        gainReductionDb.store(0.0f);
         return;
     }
 
@@ -94,7 +97,7 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
 
     auto attackMs = juce::jlimit(0.02f, 2.0f, getParameterValue(parameters.compAttack, 0.45f));
     auto releaseMs = juce::jlimit(50.0f, 1200.0f, getParameterValue(parameters.compRelease, 220.0f));
-    auto thresholdDb = thresholdDbClean;
+    auto thresholdDb = juce::jlimit(-60.0f, 0.0f, getParameterValue(parameters.compThresholdDb, -18.0f));
     auto gainReductionScale = 1.0f;
     auto saturationAmount = 0.0f;
 
@@ -120,11 +123,15 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
         saturationAmount = 0.16f;
     }
 
+    thresholdDb = juce::jlimit(-60.0f, 0.0f, thresholdDb);
+
     const auto attackCoefficient = coefficientForTime(sampleRate, attackMs * 0.001f);
     const auto releaseCoefficient = coefficientForTime(sampleRate, releaseMs * 0.001f);
     const auto ratio = getRatio();
     const auto noiseMode = getNoiseMode();
     auto blockGainReductionDb = 0.0f;
+    auto blockInputPeak = 0.0f;
+    auto blockOutputPeak = 0.0f;
 
     for (auto sample = 0; sample < numSamples; ++sample)
     {
@@ -137,7 +144,9 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
         for (auto channel = 0; channel < bufferChannels; ++channel)
         {
             const auto sidechainChannel = juce::jmin(channel, maxSidechainChannels - 1);
-            const auto detectorSample = buffer.getReadPointer(channel)[sample] * currentInputGain;
+            const auto rawDetectorSample = dryBuffer.getReadPointer(channel)[sample] * currentInputGain;
+            const auto detectorSample = std::isfinite(rawDetectorSample) ? rawDetectorSample : 0.0f;
+            blockInputPeak = juce::jmax(blockInputPeak, std::abs(detectorSample));
             detectorLevel = juce::jmax(detectorLevel, std::abs(processSidechainHighPass(detectorSample, sidechainChannel)));
         }
 
@@ -173,7 +182,16 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
             }
 
             wet = (wet + noise) * currentOutputGain;
-            samples[sample] = dry * (1.0f - currentMix) + wet * currentMix;
+
+            if (! std::isfinite(wet))
+                wet = 0.0f;
+
+            if (std::abs(wet) > 3.0f)
+                wet = std::tanh(wet / 3.0f) * 3.0f;
+
+            const auto outputSample = dry * (1.0f - currentMix) + wet * currentMix;
+            samples[sample] = std::isfinite(outputSample) ? outputSample : 0.0f;
+            blockOutputPeak = juce::jmax(blockOutputPeak, std::abs(samples[sample]));
         }
     }
 
@@ -181,6 +199,8 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
                                    ? blockGainReductionDb
                                    : displayedGainReductionDb * 0.9f + blockGainReductionDb * 0.1f;
     gainReductionDb.store(displayedGainReductionDb);
+    inputPeak.store(blockInputPeak);
+    outputPeak.store(blockOutputPeak);
 
     sanitizeBuffer(buffer);
 }
@@ -268,6 +288,23 @@ float FETCompressorModule::getNoiseSample(NoiseMode mode) noexcept
     const auto gain = mode == NoiseMode::low ? 0.0000056f : 0.000022f;
 
     return normalised * gain;
+}
+
+void FETCompressorModule::storeBypassedMeterLevels(const juce::AudioBuffer<float>& buffer) noexcept
+{
+    auto peak = 0.0f;
+
+    for (auto channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        const auto* samples = buffer.getReadPointer(channel);
+
+        for (auto sample = 0; sample < buffer.getNumSamples(); ++sample)
+            if (std::isfinite(samples[sample]))
+                peak = juce::jmax(peak, std::abs(samples[sample]));
+    }
+
+    inputPeak.store(peak);
+    outputPeak.store(peak);
 }
 
 void FETCompressorModule::sanitizeBuffer(juce::AudioBuffer<float>& buffer) const noexcept

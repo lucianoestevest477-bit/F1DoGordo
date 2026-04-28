@@ -22,11 +22,15 @@ void GordoMeter::paint(juce::Graphics& g)
     g.fillRoundedRectangle(meterArea, 3.0f);
 
     auto fill = meterArea.reduced(4.0f);
-    fill.removeFromTop(fill.getHeight() * (1.0f - level));
+    if (reductionMode)
+        fill.removeFromBottom(fill.getHeight() * (1.0f - level));
+    else
+        fill.removeFromTop(fill.getHeight() * (1.0f - level));
 
-    g.setGradientFill(juce::ColourGradient(F1Theme::green(), fill.getX(), fill.getBottom(),
-                                           level > 0.75f ? F1Theme::red() : F1Theme::amber(),
-                                           fill.getX(), fill.getY(), false));
+    const auto fillStart = reductionMode ? F1Theme::red() : F1Theme::green();
+    const auto fillEnd = reductionMode ? F1Theme::amber() : (level > 0.75f ? F1Theme::red() : F1Theme::amber());
+    g.setGradientFill(juce::ColourGradient(fillStart, fill.getX(), fill.getBottom(),
+                                           fillEnd, fill.getX(), fill.getY(), false));
     g.fillRoundedRectangle(fill, 2.0f);
 
     g.setColour(F1Theme::mutedText());

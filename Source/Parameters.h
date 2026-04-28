@@ -32,6 +32,7 @@ namespace Parameters
     inline constexpr auto highFreqHz = "highFreqHz";
     inline constexpr auto drive = "drive";
     inline constexpr auto compInputDb = "compInputDb";
+    inline constexpr auto compThresholdDb = "compThresholdDb";
     inline constexpr auto compOutputDb = "compOutputDb";
     inline constexpr auto compAttack = "compAttack";
     inline constexpr auto compRelease = "compRelease";

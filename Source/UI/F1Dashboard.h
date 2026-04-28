@@ -14,6 +14,7 @@ public:
 
     void setMeterLevels(float input, float output, float gainReduction);
     void setModuleStates(bool channelOn, bool compOn, bool airOn, bool delayOn, bool reverbOn);
+    bool isCompressorPage() const noexcept;
     void paint(juce::Graphics& g) override;
     void resized() override;
 
@@ -49,6 +50,7 @@ public:
     GordoButton channelPhaseInvert { "PHASE" };
 
     GordoKnob compInput { "INPUT" };
+    GordoKnob compThreshold { "THRESHOLD" };
     GordoKnob compOutput { "OUTPUT" };
     GordoKnob compAttack { "ATTACK" };
     GordoKnob compRelease { "RELEASE" };
@@ -96,6 +98,6 @@ private:
     std::array<GordoLED, 5> moduleLeds;
     GordoMeter inputMeter { "IN" };
     GordoMeter outputMeter { "OUT" };
-    GordoMeter gainReductionMeter { "GR" };
+    GordoMeter gainReductionMeter { "GR dB" };
     Page activePage = Page::global;
 };

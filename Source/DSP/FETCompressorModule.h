@@ -12,6 +12,7 @@ public:
     {
         std::atomic<float>* compEnabled = nullptr;
         std::atomic<float>* compInputDb = nullptr;
+        std::atomic<float>* compThresholdDb = nullptr;
         std::atomic<float>* compOutputDb = nullptr;
         std::atomic<float>* compAttack = nullptr;
         std::atomic<float>* compRelease = nullptr;
@@ -27,6 +28,8 @@ public:
     void reset() override;
     void process(juce::AudioBuffer<float>& buffer) override;
     float getGainReductionDb() const noexcept { return gainReductionDb.load(); }
+    float getInputPeak() const noexcept { return inputPeak.load(); }
+    float getOutputPeak() const noexcept { return outputPeak.load(); }
 
 private:
     enum class Revision
@@ -52,6 +55,7 @@ private:
     void updateSidechainFilter(float frequencyHz) noexcept;
     float processSidechainHighPass(float input, int channel) noexcept;
     float getNoiseSample(NoiseMode mode) noexcept;
+    void storeBypassedMeterLevels(const juce::AudioBuffer<float>& buffer) noexcept;
     void sanitizeBuffer(juce::AudioBuffer<float>& buffer) const noexcept;
 
     ParameterPointers parameters;
@@ -68,6 +72,8 @@ private:
     float detectorEnvelope = 0.0f;
     float displayedGainReductionDb = 0.0f;
     std::atomic<float> gainReductionDb { 0.0f };
+    std::atomic<float> inputPeak { 0.0f };
+    std::atomic<float> outputPeak { 0.0f };
     std::uint32_t noiseState = 0x1234abcd;
     bool prepared = false;
 };

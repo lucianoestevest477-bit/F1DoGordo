@@ -43,6 +43,7 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     // COMP page control map: these parameters are processed by FETCompressorModule.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compInputDb, dashboard.compInput));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compThresholdDb, dashboard.compThreshold));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compOutputDb, dashboard.compOutput));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compAttack, dashboard.compAttack));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compRelease, dashboard.compRelease));
@@ -78,9 +79,12 @@ void F1DoGordoAudioProcessorEditor::resized()
 
 void F1DoGordoAudioProcessorEditor::timerCallback()
 {
-    const auto input = juce::jlimit(0.0f, 1.0f, audioProcessor.getInputPeak());
-    const auto output = juce::jlimit(0.0f, 1.0f, audioProcessor.getOutputPeak());
-    const auto gr = juce::jlimit(0.0f, 1.0f, std::abs(audioProcessor.getGainReductionDb()) / 24.0f);
+    const auto useCompressorMeters = dashboard.isCompressorPage();
+    const auto input = juce::jlimit(0.0f, 1.0f, useCompressorMeters ? audioProcessor.getCompressorInputPeak()
+                                                                     : audioProcessor.getInputPeak());
+    const auto output = juce::jlimit(0.0f, 1.0f, useCompressorMeters ? audioProcessor.getCompressorOutputPeak()
+                                                                      : audioProcessor.getOutputPeak());
+    const auto gr = juce::jlimit(0.0f, 1.0f, audioProcessor.getGainReductionDb() / 24.0f);
 
     dashboard.setMeterLevels(input, output, gr);
     dashboard.setModuleStates(audioProcessor.apvts.getRawParameterValue(Parameters::channelEnabled)->load() > 0.5f,

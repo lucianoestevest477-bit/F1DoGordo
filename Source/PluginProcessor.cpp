@@ -32,6 +32,7 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
     compressor.setParameters({
         apvts.getRawParameterValue(Parameters::compEnabled),
         apvts.getRawParameterValue(Parameters::compInputDb),
+        apvts.getRawParameterValue(Parameters::compThresholdDb),
         apvts.getRawParameterValue(Parameters::compOutputDb),
         apvts.getRawParameterValue(Parameters::compAttack),
         apvts.getRawParameterValue(Parameters::compRelease),

@@ -176,6 +176,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 
     // FET compressor parameters: active DSP in FETCompressorModule.
     params.push_back(makeGainParameter(compInputDb, "Compressor Input", -24.0f, 24.0f));
+    params.push_back(makeGainParameter(compThresholdDb, "Compressor Threshold", -60.0f, 0.0f, -18.0f));
     params.push_back(makeGainParameter(compOutputDb, "Compressor Output", -24.0f, 24.0f));
     params.push_back(makeMillisecondsParameter(compAttack, "Compressor Attack", 0.02f, 2.0f, 0.45f, 0.2f));
     params.push_back(makeMillisecondsParameter(compRelease, "Compressor Release", 50.0f, 1200.0f, 220.0f, 250.0f));

@@ -11,7 +11,7 @@ F1Dashboard::F1Dashboard()
                         &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
         addAndMakeVisible(*knob);
 
-    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
+    for (auto* knob : { &compInput, &compThreshold, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
                         &compSidechainHp, &compRevision, &compNoise })
         addAndMakeVisible(*knob);
 
@@ -47,6 +47,7 @@ F1Dashboard::F1Dashboard()
 
     addAndMakeVisible(inputMeter);
     addAndMakeVisible(outputMeter);
+    gainReductionMeter.setReductionMode(true);
     addAndMakeVisible(gainReductionMeter);
 
     setPage(Page::global);
@@ -66,6 +67,11 @@ void F1Dashboard::setModuleStates(bool channelOn, bool compOn, bool airOn, bool 
     moduleLeds[2].setOn(airOn);
     moduleLeds[3].setOn(delayOn);
     moduleLeds[4].setOn(reverbOn);
+}
+
+bool F1Dashboard::isCompressorPage() const noexcept
+{
+    return activePage == Page::comp;
 }
 
 void F1Dashboard::paint(juce::Graphics& g)
@@ -104,7 +110,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     else if (activePage == Page::comp)
     {
         title = "FET COMP";
-        route = "INPUT > DETECTOR HPF > FET GAIN > MIX";
+        route = "INPUT > THRESHOLD > DETECTOR HPF > FET GAIN > MIX";
     }
 
     g.setColour(F1Theme::text());
@@ -175,7 +181,7 @@ void F1Dashboard::updateControlVisibility()
                         &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
         knob->setVisible(onChannel);
 
-    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
+    for (auto* knob : { &compInput, &compThreshold, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
                         &compSidechainHp, &compRevision, &compNoise })
         knob->setVisible(onComp);
 
@@ -271,18 +277,18 @@ void F1Dashboard::layoutCompPage(juce::Rectangle<int> cockpit)
     controls.removeFromTop(96);
     controls.removeFromBottom(42);
 
-    constexpr auto knobWidth = 126;
-    constexpr auto knobHeight = 116;
+    constexpr auto knobWidth = 118;
+    constexpr auto knobHeight = 112;
     constexpr auto buttonWidth = 116;
     constexpr auto buttonHeight = 48;
-    constexpr auto gapX = 12;
+    constexpr auto gapX = 10;
     constexpr auto gapY = 18;
 
     auto topRow = controls.removeFromTop(knobHeight);
-    const auto topRowWidth = 5 * knobWidth + 4 * gapX;
+    const auto topRowWidth = 6 * knobWidth + 5 * gapX;
     auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
 
-    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio })
+    for (auto* knob : { &compInput, &compThreshold, &compOutput, &compAttack, &compRelease, &compRatio })
     {
         knob->setBounds(top.removeFromLeft(knobWidth));
         top.removeFromLeft(gapX);

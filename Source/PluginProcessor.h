@@ -43,6 +43,8 @@ public:
 
     float getInputPeak() const noexcept { return inputMeter.getPeak(); }
     float getOutputPeak() const noexcept { return outputMeter.getPeak(); }
+    float getCompressorInputPeak() const noexcept { return compressor.getInputPeak(); }
+    float getCompressorOutputPeak() const noexcept { return compressor.getOutputPeak(); }
     float getGainReductionDb() const noexcept { return compressor.getGainReductionDb(); }
 
 private:
