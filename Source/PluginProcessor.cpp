@@ -57,6 +57,27 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
         apvts.getRawParameterValue(Parameters::airOutputDb),
         apvts.getRawParameterValue(Parameters::airMix)
     });
+
+    delay.setParameters({
+        apvts.getRawParameterValue(Parameters::delayEnabled),
+        apvts.getRawParameterValue(Parameters::delayTimeMs),
+        apvts.getRawParameterValue(Parameters::delaySyncEnabled),
+        apvts.getRawParameterValue(Parameters::delayNoteDivision),
+        apvts.getRawParameterValue(Parameters::delayMode),
+        apvts.getRawParameterValue(Parameters::delayFeedback),
+        apvts.getRawParameterValue(Parameters::delayLeftTime),
+        apvts.getRawParameterValue(Parameters::delayRightTime),
+        apvts.getRawParameterValue(Parameters::delayLink),
+        apvts.getRawParameterValue(Parameters::delayLoFi),
+        apvts.getRawParameterValue(Parameters::delayModDepth),
+        apvts.getRawParameterValue(Parameters::delayModRate),
+        apvts.getRawParameterValue(Parameters::delayHighPassHz),
+        apvts.getRawParameterValue(Parameters::delayLowPassHz),
+        apvts.getRawParameterValue(Parameters::delayDucking),
+        apvts.getRawParameterValue(Parameters::delayFreeze),
+        apvts.getRawParameterValue(Parameters::delayStereoWidth),
+        apvts.getRawParameterValue(Parameters::delaySend)
+    });
 }
 
 void F1DoGordoAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -112,15 +133,22 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 
     if (! bypassed)
     {
-        // Current audio-affecting controls: global gain/bypass, Channel/EQ, FET compressor and Air Exciter.
-        // Delay and Reverb remain neutral placeholders until their DSP pass.
+        // Current audio-affecting controls: global gain/bypass, Channel/EQ, FET compressor, Air Exciter and Delay.
+        // Reverb remains a neutral placeholder until its DSP pass.
         const auto inputGain = juce::Decibels::decibelsToGain(inputGainDbParam != nullptr ? inputGainDbParam->load() : 0.0f);
         const auto outputGain = juce::Decibels::decibelsToGain(outputGainDbParam != nullptr ? outputGainDbParam->load() : 0.0f);
+        auto hostBpm = 120.0;
+
+        if (auto* hostPlayHead = getPlayHead())
+            if (auto position = hostPlayHead->getPosition())
+                if (auto bpm = position->getBpm())
+                    hostBpm = *bpm;
 
         buffer.applyGain(inputGain);
         channel.process(buffer);
         compressor.process(buffer);
         airExciter.process(buffer);
+        delay.setHostBpm(hostBpm);
         delay.process(buffer);
         reverb.process(buffer);
         buffer.applyGain(outputGain);

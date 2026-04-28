@@ -19,12 +19,21 @@ F1Dashboard::F1Dashboard()
                         &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
         addAndMakeVisible(*knob);
 
+    for (auto* knob : { &delayTime, &delayDivision, &delayMode, &delayFeedback, &delayPageSend,
+                        &delayLeftTime, &delayRightTime, &delayHighPass, &delayLowPass, &delayWidth,
+                        &delayLoFi, &delayModDepth, &delayModRate, &delayDucking })
+        addAndMakeVisible(*knob);
+
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
     addAndMakeVisible(channelPhaseInvert);
     addAndMakeVisible(compPageEnabled);
     addAndMakeVisible(airPageEnabled);
+    addAndMakeVisible(delaySync);
+    addAndMakeVisible(delayLink);
+    addAndMakeVisible(delayFreeze);
+    addAndMakeVisible(delayPageEnabled);
 
     for (auto* tab : tabs)
     {
@@ -36,7 +45,7 @@ F1Dashboard::F1Dashboard()
     tabChannel.onClick = [this] { setPage(Page::channel); };
     tabComp.onClick = [this] { setPage(Page::comp); };
     tabAir.onClick = [this] { setPage(Page::air); };
-    tabDelay.onClick = [this] { setPage(Page::global); };
+    tabDelay.onClick = [this] { setPage(Page::delay); };
     tabReverb.onClick = [this] { setPage(Page::global); };
     tabRouting.onClick = [this] { setPage(Page::global); };
     tabMeters.onClick = [this] { setPage(Page::global); };
@@ -95,7 +104,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::red().withAlpha(0.9f));
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
-    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air;
+    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air || activePage == Page::delay;
     auto display = compactDisplay
                        ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
                        : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
@@ -121,6 +130,11 @@ void F1Dashboard::paint(juce::Graphics& g)
     {
         title = "AIR EXCITER";
         route = "MID AIR + HIGH AIR > DYNAMIC DE-ESS > MIX";
+    }
+    else if (activePage == Page::delay)
+    {
+        title = "DELAY";
+        route = "SEND > TIME/SYNC > FILTERED FEEDBACK > RETURN";
     }
 
     g.setColour(F1Theme::text());
@@ -160,6 +174,8 @@ void F1Dashboard::resized()
         layoutCompPage(cockpit);
     else if (activePage == Page::air)
         layoutAirPage(cockpit);
+    else if (activePage == Page::delay)
+        layoutDelayPage(cockpit);
     else
         layoutGlobalPage(cockpit);
 
@@ -175,6 +191,7 @@ void F1Dashboard::setPage(Page newPage)
     tabChannel.setToggleState(activePage == Page::channel, juce::dontSendNotification);
     tabComp.setToggleState(activePage == Page::comp, juce::dontSendNotification);
     tabAir.setToggleState(activePage == Page::air, juce::dontSendNotification);
+    tabDelay.setToggleState(activePage == Page::delay, juce::dontSendNotification);
     updateControlVisibility();
     resized();
     repaint();
@@ -186,6 +203,7 @@ void F1Dashboard::updateControlVisibility()
     const auto onChannel = activePage == Page::channel;
     const auto onComp = activePage == Page::comp;
     const auto onAir = activePage == Page::air;
+    const auto onDelay = activePage == Page::delay;
 
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         knob->setVisible(onGlobal);
@@ -203,6 +221,11 @@ void F1Dashboard::updateControlVisibility()
                         &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
         knob->setVisible(onAir);
 
+    for (auto* knob : { &delayTime, &delayDivision, &delayMode, &delayFeedback, &delayPageSend,
+                        &delayLeftTime, &delayRightTime, &delayHighPass, &delayLowPass, &delayWidth,
+                        &delayLoFi, &delayModDepth, &delayModRate, &delayDucking })
+        knob->setVisible(onDelay);
+
     globalBypass.setVisible(onGlobal);
     channelEnabled.setVisible(onGlobal);
     compEnabled.setVisible(onGlobal);
@@ -212,6 +235,10 @@ void F1Dashboard::updateControlVisibility()
     channelPhaseInvert.setVisible(onChannel);
     compPageEnabled.setVisible(onComp);
     airPageEnabled.setVisible(onAir);
+    delaySync.setVisible(onDelay);
+    delayLink.setVisible(onDelay);
+    delayFreeze.setVisible(onDelay);
+    delayPageEnabled.setVisible(onDelay);
 }
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
@@ -366,4 +393,63 @@ void F1Dashboard::layoutAirPage(juce::Rectangle<int> cockpit)
     }
 
     airPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+}
+
+void F1Dashboard::layoutDelayPage(juce::Rectangle<int> cockpit)
+{
+    auto controls = cockpit.reduced(14, 0);
+    controls.removeFromTop(84);
+    controls.removeFromBottom(18);
+
+    constexpr auto knobWidth = 102;
+    constexpr auto knobHeight = 96;
+    constexpr auto buttonWidth = 84;
+    constexpr auto buttonHeight = 44;
+    constexpr auto gapX = 8;
+    constexpr auto gapY = 8;
+
+    auto makeRow = [=] (juce::Rectangle<int> rowArea, int knobCount, int buttonCount)
+    {
+        const auto itemCount = knobCount + buttonCount;
+        const auto rowWidth = knobCount * knobWidth + buttonCount * buttonWidth + (itemCount - 1) * gapX;
+        return juce::Rectangle<int>(rowWidth, knobHeight).withCentre(rowArea.getCentre());
+    };
+
+    auto placeKnob = [=] (juce::Rectangle<int>& row, GordoKnob& knob)
+    {
+        knob.setBounds(row.removeFromLeft(knobWidth));
+        row.removeFromLeft(gapX);
+    };
+
+    auto placeButton = [=] (juce::Rectangle<int>& row, GordoButton& button)
+    {
+        button.setBounds(row.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+        row.removeFromLeft(gapX);
+    };
+
+    auto row1 = makeRow(controls.removeFromTop(knobHeight), 5, 1);
+    placeKnob(row1, delayTime);
+    placeButton(row1, delaySync);
+    placeKnob(row1, delayDivision);
+    placeKnob(row1, delayMode);
+    placeKnob(row1, delayFeedback);
+    placeKnob(row1, delayPageSend);
+
+    controls.removeFromTop(gapY);
+    auto row2 = makeRow(controls.removeFromTop(knobHeight), 5, 1);
+    placeKnob(row2, delayLeftTime);
+    placeKnob(row2, delayRightTime);
+    placeButton(row2, delayLink);
+    placeKnob(row2, delayHighPass);
+    placeKnob(row2, delayLowPass);
+    placeKnob(row2, delayWidth);
+
+    controls.removeFromTop(gapY);
+    auto row3 = makeRow(controls.removeFromTop(knobHeight), 4, 2);
+    placeKnob(row3, delayLoFi);
+    placeKnob(row3, delayModDepth);
+    placeKnob(row3, delayModRate);
+    placeKnob(row3, delayDucking);
+    placeButton(row3, delayFreeze);
+    placeButton(row3, delayPageEnabled);
 }

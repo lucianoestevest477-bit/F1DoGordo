@@ -50,6 +50,22 @@ namespace Parameters
     inline constexpr auto airDeEss = "airDeEss";
     inline constexpr auto airTone = "airTone";
     inline constexpr auto airOutputDb = "airOutputDb";
+    inline constexpr auto delayTimeMs = "delayTimeMs";
+    inline constexpr auto delaySyncEnabled = "delaySyncEnabled";
+    inline constexpr auto delayNoteDivision = "delayNoteDivision";
+    inline constexpr auto delayMode = "delayMode";
+    inline constexpr auto delayFeedback = "delayFeedback";
+    inline constexpr auto delayLeftTime = "delayLeftTime";
+    inline constexpr auto delayRightTime = "delayRightTime";
+    inline constexpr auto delayLink = "delayLink";
+    inline constexpr auto delayLoFi = "delayLoFi";
+    inline constexpr auto delayModDepth = "delayModDepth";
+    inline constexpr auto delayModRate = "delayModRate";
+    inline constexpr auto delayHighPassHz = "delayHighPassHz";
+    inline constexpr auto delayLowPassHz = "delayLowPassHz";
+    inline constexpr auto delayDucking = "delayDucking";
+    inline constexpr auto delayFreeze = "delayFreeze";
+    inline constexpr auto delayStereoWidth = "delayStereoWidth";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

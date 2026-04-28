@@ -15,8 +15,8 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
-    // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH and AIR affect audio now.
-    // ECHO/SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
+    // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH, AIR and ECHO affect audio now.
+    // SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::outputGainDb, dashboard.outputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelMix));
@@ -67,6 +67,22 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMix, dashboard.airPageMix));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airOutputDb, dashboard.airPageOutput));
 
+    // DELAY page control map: delaySend/ECHO is the only delay amount control.
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayTimeMs, dashboard.delayTime));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayNoteDivision, dashboard.delayDivision));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayMode, dashboard.delayMode));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayFeedback, dashboard.delayFeedback));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delaySend, dashboard.delayPageSend));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayLeftTime, dashboard.delayLeftTime));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayRightTime, dashboard.delayRightTime));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayHighPassHz, dashboard.delayHighPass));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayLowPassHz, dashboard.delayLowPass));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayStereoWidth, dashboard.delayWidth));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayLoFi, dashboard.delayLoFi));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayModDepth, dashboard.delayModDepth));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayModRate, dashboard.delayModRate));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayDucking, dashboard.delayDucking));
+
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::globalBypass, dashboard.globalBypass));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::channelEnabled, dashboard.channelEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compEnabled));
@@ -76,6 +92,10 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::phaseInvert, dashboard.channelPhaseInvert));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compPageEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::airEnabled, dashboard.airPageEnabled));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delaySyncEnabled, dashboard.delaySync));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayLink, dashboard.delayLink));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayFreeze, dashboard.delayFreeze));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayEnabled, dashboard.delayPageEnabled));
 
     startTimerHz(24);
 }

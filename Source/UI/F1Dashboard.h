@@ -74,13 +74,33 @@ public:
     GordoKnob airPageOutput { "OUTPUT" };
     GordoButton airPageEnabled { "ON" };
 
+    GordoKnob delayTime { "TIME" };
+    GordoKnob delayDivision { "DIVISION" };
+    GordoKnob delayMode { "MODE" };
+    GordoKnob delayFeedback { "FEEDBACK" };
+    GordoKnob delayPageSend { "SEND" };
+    GordoKnob delayLeftTime { "L TIME" };
+    GordoKnob delayRightTime { "R TIME" };
+    GordoKnob delayHighPass { "HPF" };
+    GordoKnob delayLowPass { "LPF" };
+    GordoKnob delayWidth { "WIDTH" };
+    GordoKnob delayLoFi { "LOFI" };
+    GordoKnob delayModDepth { "MOD DEPTH" };
+    GordoKnob delayModRate { "MOD RATE" };
+    GordoKnob delayDucking { "DUCKING" };
+    GordoButton delaySync { "SYNC" };
+    GordoButton delayLink { "LINK" };
+    GordoButton delayFreeze { "FREEZE" };
+    GordoButton delayPageEnabled { "ON" };
+
 private:
     enum class Page
     {
         global,
         channel,
         comp,
-        air
+        air,
+        delay
     };
 
     void setPage(Page newPage);
@@ -89,6 +109,7 @@ private:
     void layoutChannelPage(juce::Rectangle<int> cockpit);
     void layoutCompPage(juce::Rectangle<int> cockpit);
     void layoutAirPage(juce::Rectangle<int> cockpit);
+    void layoutDelayPage(juce::Rectangle<int> cockpit);
 
     GordoButton tabGlobal { "GLOBAL" };
     GordoButton tabChannel { "CHANNEL" };

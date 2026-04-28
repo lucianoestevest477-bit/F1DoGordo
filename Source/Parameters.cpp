@@ -114,6 +114,33 @@ namespace
                 }));
     }
 
+    std::unique_ptr<juce::AudioParameterFloat> makeRateParameter(const juce::String& id,
+                                                                 const juce::String& name,
+                                                                 float minHz,
+                                                                 float maxHz,
+                                                                 float defaultValue,
+                                                                 float centreHz)
+    {
+        juce::NormalisableRange<float> range { minHz, maxHz, 0.001f };
+        range.setSkewForCentre(centreHz);
+
+        return std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID { id, 1 },
+            name,
+            range,
+            defaultValue,
+            juce::AudioParameterFloatAttributes()
+                .withLabel("Hz")
+                .withStringFromValueFunction([](float value, int maximumStringLength)
+                {
+                    return trimToLength(juce::String(value, value < 1.0f ? 2 : 1) + " Hz", maximumStringLength);
+                })
+                .withValueFromStringFunction([](const juce::String& text)
+                {
+                    return text.retainCharacters("0123456789.-").getFloatValue();
+                }));
+    }
+
     std::unique_ptr<juce::AudioParameterBool> makeBoolParameter(const juce::String& id,
                                                                 const juce::String& name,
                                                                 bool defaultValue)
@@ -197,6 +224,24 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
     params.push_back(makePercentParameter(airDeEss, "Air De-ess", 0.0f));
     params.push_back(makePercentParameter(airTone, "Air Tone", 0.5f));
     params.push_back(makeGainParameter(airOutputDb, "Air Output", -12.0f, 12.0f));
+
+    // Delay parameters: active DSP in DelayModule. Amount is controlled by delaySend/ECHO only.
+    params.push_back(makeMillisecondsParameter(delayTimeMs, "Delay Time", 20.0f, 2000.0f, 350.0f, 350.0f));
+    params.push_back(makeBoolParameter(delaySyncEnabled, "Delay Sync", false));
+    params.push_back(makeChoiceParameter(delayNoteDivision, "Delay Division", { "1/4", "1/8", "1/8D", "1/8T", "1/16", "1/16D", "1/16T", "1/2" }, 0));
+    params.push_back(makeChoiceParameter(delayMode, "Delay Mode", { "Mono", "PingPong", "Dual" }, 0));
+    params.push_back(makePercentParameter(delayFeedback, "Delay Feedback", 0.25f));
+    params.push_back(makeMillisecondsParameter(delayLeftTime, "Delay Left Time", 20.0f, 2000.0f, 350.0f, 350.0f));
+    params.push_back(makeMillisecondsParameter(delayRightTime, "Delay Right Time", 20.0f, 2000.0f, 525.0f, 525.0f));
+    params.push_back(makeBoolParameter(delayLink, "Delay Link", true));
+    params.push_back(makePercentParameter(delayLoFi, "Delay LoFi", 0.0f));
+    params.push_back(makePercentParameter(delayModDepth, "Delay Mod Depth", 0.0f));
+    params.push_back(makeRateParameter(delayModRate, "Delay Mod Rate", 0.05f, 8.0f, 0.35f, 0.7f));
+    params.push_back(makeFrequencyParameter(delayHighPassHz, "Delay High-pass", 20.0f, 1000.0f, 20.0f, 120.0f));
+    params.push_back(makeFrequencyParameter(delayLowPassHz, "Delay Low-pass", 1000.0f, 20000.0f, 16000.0f, 7000.0f));
+    params.push_back(makePercentParameter(delayDucking, "Delay Ducking", 0.0f));
+    params.push_back(makeBoolParameter(delayFreeze, "Delay Freeze", false));
+    params.push_back(makePercentParameter(delayStereoWidth, "Delay Stereo Width", 1.0f));
 
     return { params.begin(), params.end() };
 }
