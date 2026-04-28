@@ -13,5 +13,5 @@ public:
 
 private:
     juce::Colour colour;
-    bool on = true;
+    bool on = false;
 };

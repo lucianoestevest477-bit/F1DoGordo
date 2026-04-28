@@ -195,20 +195,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // These global parameters affect audio in the current pass-through stage.
+    // Factory default must be neutral: inserting the plugin should not change the sound.
+    // These global parameters stay at unity/pass-through unless the user moves them.
     params.push_back(makeGainParameter(inputGainDb, "Input Gain"));
     params.push_back(makeGainParameter(outputGainDb, "Output Gain"));
     params.push_back(makeBoolParameter(globalBypass, "Global Bypass", false));
 
     // Module switches and macro amounts are wired to APVTS for UI/host automation.
-    params.push_back(makeBoolParameter(channelEnabled, "Channel Enabled", true));
-    params.push_back(makeBoolParameter(compEnabled, "FET Compressor Enabled", true));
-    params.push_back(makeBoolParameter(airEnabled, "Air Exciter Enabled", true));
-    params.push_back(makeBoolParameter(delayEnabled, "Delay Enabled", true));
-    params.push_back(makeBoolParameter(reverbEnabled, "Reverb Enabled", true));
-    params.push_back(makePercentParameter(channelMix, "Channel Mix", 1.0f));
-    params.push_back(makePercentParameter(compMix, "Compressor Mix", 1.0f));
-    params.push_back(makePercentParameter(airMix, "Air Mix", 1.0f));
+    params.push_back(makeBoolParameter(channelEnabled, "Channel Enabled", false));
+    params.push_back(makeBoolParameter(compEnabled, "FET Compressor Enabled", false));
+    params.push_back(makeBoolParameter(airEnabled, "Air Exciter Enabled", false));
+    params.push_back(makeBoolParameter(delayEnabled, "Delay Enabled", false));
+    params.push_back(makeBoolParameter(reverbEnabled, "Reverb Enabled", false));
+    params.push_back(makePercentParameter(channelMix, "Channel Mix", 0.0f));
+    params.push_back(makePercentParameter(compMix, "Compressor Mix", 0.0f));
+    params.push_back(makePercentParameter(airMix, "Air Mix", 0.0f));
     params.push_back(makePercentParameter(delaySend, "Delay Send", 0.0f));
     params.push_back(makePercentParameter(reverbSend, "Reverb Send", 0.0f));
     params.push_back(makePercentParameter(masterWidth, "Master Width", 1.0f));
@@ -230,7 +231,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 
     // FET compressor parameters: active DSP in FETCompressorModule.
     params.push_back(makeGainParameter(compInputDb, "Compressor Input", -24.0f, 24.0f));
-    params.push_back(makeGainParameter(compThresholdDb, "Compressor Threshold", -60.0f, 0.0f, -18.0f));
+    params.push_back(makeGainParameter(compThresholdDb, "Compressor Threshold", -60.0f, 0.0f, 0.0f));
     params.push_back(makeGainParameter(compOutputDb, "Compressor Output", -24.0f, 24.0f));
     params.push_back(makeMillisecondsParameter(compAttack, "Compressor Attack", 0.02f, 2.0f, 0.45f, 0.2f));
     params.push_back(makeMillisecondsParameter(compRelease, "Compressor Release", 50.0f, 1200.0f, 220.0f, 250.0f));
@@ -241,13 +242,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 
     // Air Exciter parameters: active DSP in AirExciterModule. Defaults keep the module neutral.
     params.push_back(makePercentParameter(airAmount, "Air Amount", 0.0f));
-    params.push_back(makePercentParameter(airMidAir, "Mid Air", 0.55f));
-    params.push_back(makePercentParameter(airHighAir, "High Air", 0.65f));
+    params.push_back(makePercentParameter(airMidAir, "Mid Air", 0.0f));
+    params.push_back(makePercentParameter(airHighAir, "High Air", 0.0f));
     params.push_back(makeFrequencyParameter(airFrequencyHz, "Air Frequency", 2000.0f, 16000.0f, 8000.0f, 7000.0f));
     // Keep the airDrive ID for preset/session compatibility; it controls Air intensity / harmonic excitation intensity.
     params.push_back(makePercentParameter(airDrive, "Air Intensity", 0.0f));
-    params.push_back(makePercentParameter(airDensity, "Air Density", 0.4f));
-    params.push_back(makePercentParameter(airDynamic, "Air Dynamic", 0.35f));
+    params.push_back(makePercentParameter(airDensity, "Air Density", 0.0f));
+    params.push_back(makePercentParameter(airDynamic, "Air Dynamic", 0.0f));
     params.push_back(makePercentParameter(airDeEss, "Air De-ess", 0.0f));
     params.push_back(makePercentParameter(airTone, "Air Tone", 0.5f));
     params.push_back(makeGainParameter(airOutputDb, "Air Output", -12.0f, 12.0f));
