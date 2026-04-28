@@ -41,8 +41,13 @@ namespace Parameters
     inline constexpr auto compRevision = "compRevision";
     inline constexpr auto compNoiseMode = "compNoiseMode";
     inline constexpr auto airAmount = "airAmount";
+    inline constexpr auto airMidAir = "airMidAir";
+    inline constexpr auto airHighAir = "airHighAir";
     inline constexpr auto airFrequencyHz = "airFrequencyHz";
     inline constexpr auto airDrive = "airDrive";
+    inline constexpr auto airDensity = "airDensity";
+    inline constexpr auto airDynamic = "airDynamic";
+    inline constexpr auto airDeEss = "airDeEss";
     inline constexpr auto airTone = "airTone";
     inline constexpr auto airOutputDb = "airOutputDb";
 

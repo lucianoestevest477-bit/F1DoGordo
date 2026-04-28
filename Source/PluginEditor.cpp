@@ -55,8 +55,13 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     // AIR page control map: these parameters are processed by AirExciterModule.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airAmount, dashboard.airPageAmount));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMidAir, dashboard.airMidAir));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airHighAir, dashboard.airHighAir));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airFrequencyHz, dashboard.airFrequency));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDrive, dashboard.airPageDrive));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDensity, dashboard.airDensity));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDynamic, dashboard.airDynamic));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDeEss, dashboard.airDeEss));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airTone, dashboard.airPageTone));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMix, dashboard.airPageMix));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airOutputDb, dashboard.airPageOutput));

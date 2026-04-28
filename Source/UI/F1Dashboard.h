@@ -62,8 +62,13 @@ public:
     GordoButton compPageEnabled { "ON" };
 
     GordoKnob airPageAmount { "AMOUNT" };
+    GordoKnob airMidAir { "MID AIR" };
+    GordoKnob airHighAir { "HIGH AIR" };
     GordoKnob airFrequency { "FREQ" };
     GordoKnob airPageDrive { "DRIVE" };
+    GordoKnob airDensity { "DENSITY" };
+    GordoKnob airDynamic { "DYNAMIC" };
+    GordoKnob airDeEss { "DE-ESS" };
     GordoKnob airPageTone { "TONE" };
     GordoKnob airPageMix { "MIX" };
     GordoKnob airPageOutput { "OUTPUT" };

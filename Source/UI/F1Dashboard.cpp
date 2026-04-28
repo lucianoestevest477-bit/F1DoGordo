@@ -15,7 +15,8 @@ F1Dashboard::F1Dashboard()
                         &compSidechainHp, &compRevision, &compNoise })
         addAndMakeVisible(*knob);
 
-    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+    for (auto* knob : { &airPageAmount, &airMidAir, &airHighAir, &airFrequency, &airPageTone,
+                        &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
         addAndMakeVisible(*knob);
 
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
@@ -119,7 +120,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     else if (activePage == Page::air)
     {
         title = "AIR EXCITER";
-        route = "HIGH SPLIT > HARMONICS > TONE > MIX";
+        route = "MID AIR + HIGH AIR > DYNAMIC DE-ESS > MIX";
     }
 
     g.setColour(F1Theme::text());
@@ -198,7 +199,8 @@ void F1Dashboard::updateControlVisibility()
                         &compSidechainHp, &compRevision, &compNoise })
         knob->setVisible(onComp);
 
-    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+    for (auto* knob : { &airPageAmount, &airMidAir, &airHighAir, &airFrequency, &airPageTone,
+                        &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
         knob->setVisible(onAir);
 
     globalBypass.setVisible(onGlobal);
@@ -328,27 +330,40 @@ void F1Dashboard::layoutCompPage(juce::Rectangle<int> cockpit)
 
 void F1Dashboard::layoutAirPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(34, 0);
-    controls.removeFromTop(104);
-    controls.removeFromBottom(74);
+    auto controls = cockpit.reduced(20, 0);
+    controls.removeFromTop(96);
+    controls.removeFromBottom(44);
 
-    constexpr auto knobWidth = 118;
+    constexpr auto topKnobWidth = 118;
+    constexpr auto bottomKnobWidth = 104;
     constexpr auto knobHeight = 112;
-    constexpr auto buttonWidth = 116;
+    constexpr auto buttonWidth = 96;
     constexpr auto buttonHeight = 48;
-    constexpr auto gapX = 10;
-    constexpr auto gapY = 18;
+    constexpr auto topGapX = 10;
+    constexpr auto bottomGapX = 8;
+    constexpr auto gapY = 14;
 
     auto topRow = controls.removeFromTop(knobHeight);
-    const auto topRowWidth = 6 * knobWidth + 5 * gapX;
+    const auto topRowWidth = 5 * topKnobWidth + 4 * topGapX;
     auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
 
-    for (auto* knob : { &airPageAmount, &airFrequency, &airPageDrive, &airPageTone, &airPageMix, &airPageOutput })
+    for (auto* knob : { &airPageAmount, &airMidAir, &airHighAir, &airFrequency, &airPageTone })
     {
-        knob->setBounds(top.removeFromLeft(knobWidth));
-        top.removeFromLeft(gapX);
+        knob->setBounds(top.removeFromLeft(topKnobWidth));
+        top.removeFromLeft(topGapX);
     }
 
     controls.removeFromTop(gapY);
-    airPageEnabled.setBounds(controls.removeFromTop(buttonHeight).withSizeKeepingCentre(buttonWidth, buttonHeight));
+
+    auto bottomRow = controls.removeFromTop(knobHeight);
+    const auto bottomRowWidth = 6 * bottomKnobWidth + buttonWidth + 6 * bottomGapX;
+    auto bottom = juce::Rectangle<int>(bottomRowWidth, knobHeight).withCentre(bottomRow.getCentre());
+
+    for (auto* knob : { &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
+    {
+        knob->setBounds(bottom.removeFromLeft(bottomKnobWidth));
+        bottom.removeFromLeft(bottomGapX);
+    }
+
+    airPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
 }

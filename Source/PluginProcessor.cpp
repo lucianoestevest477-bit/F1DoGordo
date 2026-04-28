@@ -46,8 +46,13 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
     airExciter.setParameters({
         apvts.getRawParameterValue(Parameters::airEnabled),
         apvts.getRawParameterValue(Parameters::airAmount),
+        apvts.getRawParameterValue(Parameters::airMidAir),
+        apvts.getRawParameterValue(Parameters::airHighAir),
         apvts.getRawParameterValue(Parameters::airFrequencyHz),
         apvts.getRawParameterValue(Parameters::airDrive),
+        apvts.getRawParameterValue(Parameters::airDensity),
+        apvts.getRawParameterValue(Parameters::airDynamic),
+        apvts.getRawParameterValue(Parameters::airDeEss),
         apvts.getRawParameterValue(Parameters::airTone),
         apvts.getRawParameterValue(Parameters::airOutputDb),
         apvts.getRawParameterValue(Parameters::airMix)

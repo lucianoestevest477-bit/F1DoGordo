@@ -11,8 +11,13 @@ public:
     {
         std::atomic<float>* airEnabled = nullptr;
         std::atomic<float>* airAmount = nullptr;
+        std::atomic<float>* airMidAir = nullptr;
+        std::atomic<float>* airHighAir = nullptr;
         std::atomic<float>* airFrequencyHz = nullptr;
         std::atomic<float>* airDrive = nullptr;
+        std::atomic<float>* airDensity = nullptr;
+        std::atomic<float>* airDynamic = nullptr;
+        std::atomic<float>* airDeEss = nullptr;
         std::atomic<float>* airTone = nullptr;
         std::atomic<float>* airOutputDb = nullptr;
         std::atomic<float>* airMix = nullptr;
@@ -30,6 +35,8 @@ private:
     struct CachedParameters
     {
         float frequencyHz = std::numeric_limits<float>::quiet_NaN();
+        float midFrequencyHz = std::numeric_limits<float>::quiet_NaN();
+        float sibilanceFrequencyHz = std::numeric_limits<float>::quiet_NaN();
         float tone = std::numeric_limits<float>::quiet_NaN();
     };
 
@@ -41,16 +48,27 @@ private:
     ParameterPointers parameters;
     CachedParameters cached;
 
+    IIRFilter midBandFilter;
     IIRFilter highPassFilter;
     IIRFilter toneShelfFilter;
+    IIRFilter sibilanceFilter;
 
     juce::AudioBuffer<float> dryBuffer;
+    juce::AudioBuffer<float> midBuffer;
     juce::AudioBuffer<float> highBuffer;
+    juce::AudioBuffer<float> sibilanceBuffer;
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> amount;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> midAir;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> highAir;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> drive;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> density;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> dynamic;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> deEss;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outputGain;
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mix;
 
+    float dynamicEnvelope = 0.0f;
+    float sibilanceEnvelope = 0.0f;
     bool prepared = false;
 };

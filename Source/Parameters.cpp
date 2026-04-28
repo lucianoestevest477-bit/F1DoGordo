@@ -187,8 +187,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 
     // Air Exciter parameters: active DSP in AirExciterModule. Defaults keep the module neutral.
     params.push_back(makePercentParameter(airAmount, "Air Amount", 0.0f));
+    params.push_back(makePercentParameter(airMidAir, "Mid Air", 0.55f));
+    params.push_back(makePercentParameter(airHighAir, "High Air", 0.65f));
     params.push_back(makeFrequencyParameter(airFrequencyHz, "Air Frequency", 2000.0f, 16000.0f, 8000.0f, 7000.0f));
     params.push_back(makePercentParameter(airDrive, "Air Drive", 0.0f));
+    params.push_back(makePercentParameter(airDensity, "Air Density", 0.4f));
+    params.push_back(makePercentParameter(airDynamic, "Air Dynamic", 0.35f));
+    params.push_back(makePercentParameter(airDeEss, "Air De-ess", 0.0f));
     params.push_back(makePercentParameter(airTone, "Air Tone", 0.5f));
     params.push_back(makeGainParameter(airOutputDb, "Air Output", -12.0f, 12.0f));
 
