@@ -65,7 +65,7 @@ public:
     GordoKnob airMidAir { "MID AIR" };
     GordoKnob airHighAir { "HIGH AIR" };
     GordoKnob airFrequency { "FREQ" };
-    GordoKnob airPageDrive { "DRIVE" };
+    GordoKnob airPageDrive { "INTENSITY" };
     GordoKnob airDensity { "DENSITY" };
     GordoKnob airDynamic { "DYNAMIC" };
     GordoKnob airDeEss { "DE-ESS" };

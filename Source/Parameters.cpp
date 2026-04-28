@@ -190,7 +190,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
     params.push_back(makePercentParameter(airMidAir, "Mid Air", 0.55f));
     params.push_back(makePercentParameter(airHighAir, "High Air", 0.65f));
     params.push_back(makeFrequencyParameter(airFrequencyHz, "Air Frequency", 2000.0f, 16000.0f, 8000.0f, 7000.0f));
-    params.push_back(makePercentParameter(airDrive, "Air Drive", 0.0f));
+    // Keep the airDrive ID for preset/session compatibility; it controls Air intensity / harmonic excitation intensity.
+    params.push_back(makePercentParameter(airDrive, "Air Intensity", 0.0f));
     params.push_back(makePercentParameter(airDensity, "Air Density", 0.4f));
     params.push_back(makePercentParameter(airDynamic, "Air Dynamic", 0.35f));
     params.push_back(makePercentParameter(airDeEss, "Air De-ess", 0.0f));

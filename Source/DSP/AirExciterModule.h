@@ -14,6 +14,7 @@ public:
         std::atomic<float>* airMidAir = nullptr;
         std::atomic<float>* airHighAir = nullptr;
         std::atomic<float>* airFrequencyHz = nullptr;
+        // airDrive is kept as the stable parameter ID; user-facing label is Air Intensity.
         std::atomic<float>* airDrive = nullptr;
         std::atomic<float>* airDensity = nullptr;
         std::atomic<float>* airDynamic = nullptr;

@@ -58,6 +58,7 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMidAir, dashboard.airMidAir));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airHighAir, dashboard.airHighAir));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airFrequencyHz, dashboard.airFrequency));
+    // airDrive is the stable APVTS ID for the user-facing INTENSITY control.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDrive, dashboard.airPageDrive));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDensity, dashboard.airDensity));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airDynamic, dashboard.airDynamic));
