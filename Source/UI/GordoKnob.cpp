@@ -6,7 +6,7 @@ GordoKnob::GordoKnob(const juce::String& labelText)
       label(labelText)
 {
     setRange(0.0, 1.0);
-    setTextBoxStyle(juce::Slider::TextBoxBelow, false, 86, 22);
+    setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     setColour(juce::Slider::textBoxTextColourId, F1Theme::text());
     setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -20,11 +20,11 @@ void GordoKnob::setLabelText(const juce::String& newLabelText)
 
 void GordoKnob::paint(juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    auto labelArea = bounds.removeFromBottom(24.0f);
-    auto valueArea = bounds.removeFromBottom(24.0f);
-    auto knobArea = bounds.reduced(8.0f).withSizeKeepingCentre(juce::jmin(bounds.getWidth(), bounds.getHeight() - 4.0f),
-                                                               juce::jmin(bounds.getWidth(), bounds.getHeight() - 4.0f));
+    auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    auto labelArea = bounds.removeFromTop(34.0f);
+    auto valueArea = bounds.removeFromBottom(26.0f);
+    auto knobSize = juce::jmax(34.0f, juce::jmin(bounds.getWidth() - 12.0f, bounds.getHeight() - 6.0f));
+    auto knobArea = bounds.reduced(6.0f, 2.0f).withSizeKeepingCentre(knobSize, knobSize);
 
     const auto radius = knobArea.getWidth() * 0.5f;
     const auto centre = knobArea.getCentre();
@@ -54,11 +54,16 @@ void GordoKnob::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0x88000000));
     g.drawEllipse(knobArea, 1.4f);
 
-    g.setColour(F1Theme::mutedText());
+    g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(13.0f, juce::Font::bold));
-    g.drawFittedText(label, labelArea.toNearestInt(), juce::Justification::centred, 1);
+    g.drawFittedText(label, labelArea.toNearestInt(), juce::Justification::centred, 2);
 
+    auto valueBox = valueArea.reduced(8.0f, 2.0f);
+    g.setColour(juce::Colour(0xaa050607));
+    g.fillRoundedRectangle(valueBox, 4.0f);
+    g.setColour(F1Theme::blue().withAlpha(0.35f));
+    g.drawRoundedRectangle(valueBox, 4.0f, 1.0f);
     g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
-    g.drawFittedText(getTextFromValue(getValue()), valueArea.toNearestInt(), juce::Justification::centred, 1);
+    g.drawFittedText(getTextFromValue(getValue()), valueBox.toNearestInt().reduced(2, 0), juce::Justification::centred, 1);
 }

@@ -80,7 +80,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
     auto display = activePage == Page::channel
-                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, 80.0f).withY(inner.getY() + 18.0f)
+                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
                        : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
     g.setColour(juce::Colour(0xff050607));
     g.fillRoundedRectangle(display, 8.0f);
@@ -157,11 +157,11 @@ void F1Dashboard::updateControlVisibility()
         knob->setVisible(onChannel);
 
     globalBypass.setVisible(onGlobal);
+    channelEnabled.setVisible(onGlobal);
     compEnabled.setVisible(onGlobal);
     airEnabled.setVisible(onGlobal);
     delayEnabled.setVisible(onGlobal);
     reverbEnabled.setVisible(onGlobal);
-    channelEnabled.setVisible(true);
     channelPhaseInvert.setVisible(onChannel);
 }
 
@@ -191,48 +191,52 @@ void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
 
 void F1Dashboard::layoutChannelPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(44, 0);
-    controls.removeFromTop(70);
-    controls.removeFromBottom(62);
+    auto controls = cockpit.reduced(28, 0);
+    controls.removeFromTop(86);
+    controls.removeFromBottom(18);
 
-    constexpr auto columns = 5;
-    constexpr auto rows = 3;
-    constexpr auto cellWidth = 112;
-    constexpr auto cellHeight = 102;
-    constexpr auto gapX = 10;
-    constexpr auto gapY = 6;
+    constexpr auto knobWidth = 118;
+    constexpr auto knobHeight = 110;
+    constexpr auto buttonWidth = 118;
+    constexpr auto buttonHeight = 46;
+    constexpr auto gapX = 11;
+    constexpr auto gapY = 8;
 
-    const auto gridWidth = columns * cellWidth + (columns - 1) * gapX;
-    const auto gridHeight = rows * cellHeight + (rows - 1) * gapY;
-    auto grid = juce::Rectangle<int>(gridWidth, gridHeight).withCentre(controls.getCentre());
+    auto layoutKnobs = [] (juce::Rectangle<int> rowArea, std::initializer_list<GordoKnob*> knobs)
+    {
+        constexpr auto localKnobWidth = knobWidth;
+        constexpr auto localKnobHeight = knobHeight;
+        constexpr auto localGapX = gapX;
 
-    std::array<GordoKnob*, 13> knobs {
-        &channelInputTrim,
-        &channelHighPass,
-        &channelLowPass,
-        &channelDrive,
-        &channelPageMix,
-        &channelLowGain,
-        &channelLowFreq,
-        &channelLowMidGain,
-        &channelLowMidFreq,
-        &channelHighMidGain,
-        &channelHighMidFreq,
-        &channelHighGain,
-        &channelHighFreq
+        const auto rowWidth = static_cast<int>(knobs.size()) * localKnobWidth
+                            + (static_cast<int>(knobs.size()) - 1) * localGapX;
+        auto row = juce::Rectangle<int>(rowWidth, localKnobHeight).withCentre(rowArea.getCentre());
+
+        for (auto* knob : knobs)
+        {
+            knob->setBounds(row.removeFromLeft(localKnobWidth));
+            row.removeFromLeft(localGapX);
+        }
     };
 
-    for (auto index = 0; index < static_cast<int>(knobs.size()); ++index)
+    auto topRow = controls.removeFromTop(knobHeight);
+    const auto topRowWidth = 5 * knobWidth + buttonWidth + 5 * gapX;
+    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
+
+    for (auto* knob : { &channelInputTrim, &channelHighPass, &channelLowPass, &channelDrive, &channelPageMix })
     {
-        const auto row = index / columns;
-        const auto column = index % columns;
-        knobs[static_cast<size_t>(index)]->setBounds(grid.getX() + column * (cellWidth + gapX),
-                                                     grid.getY() + row * (cellHeight + gapY),
-                                                     cellWidth,
-                                                     cellHeight);
+        knob->setBounds(top.removeFromLeft(knobWidth));
+        top.removeFromLeft(gapX);
     }
 
-    auto switchArea = cockpit.withTrimmedTop(cockpit.getHeight() - 60).withSizeKeepingCentre(190, 54);
-    channelEnabled.setBounds(switchArea.removeFromLeft(90).reduced(4, 10));
-    channelPhaseInvert.setBounds(switchArea.removeFromLeft(96).reduced(4, 10));
+    auto phaseCell = top.removeFromLeft(buttonWidth);
+    channelPhaseInvert.setBounds(phaseCell.withSizeKeepingCentre(buttonWidth, buttonHeight));
+
+    controls.removeFromTop(gapY);
+    layoutKnobs(controls.removeFromTop(knobHeight),
+                { &channelLowGain, &channelLowFreq, &channelLowMidGain, &channelLowMidFreq });
+
+    controls.removeFromTop(gapY);
+    layoutKnobs(controls.removeFromTop(knobHeight),
+                { &channelHighMidGain, &channelHighMidFreq, &channelHighGain, &channelHighFreq });
 }
