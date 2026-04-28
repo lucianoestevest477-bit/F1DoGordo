@@ -6,11 +6,30 @@ F1Dashboard::F1Dashboard()
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         addAndMakeVisible(*knob);
 
+    for (auto* knob : { &channelInputTrim, &channelHighPass, &channelLowPass, &channelLowGain, &channelLowFreq,
+                        &channelLowMidGain, &channelLowMidFreq, &channelHighMidGain, &channelHighMidFreq,
+                        &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
+        addAndMakeVisible(*knob);
+
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
+    addAndMakeVisible(channelPhaseInvert);
+
     for (auto* tab : tabs)
+    {
         addAndMakeVisible(*tab);
+        tab->setRadioGroupId(1001, juce::dontSendNotification);
+    }
+
+    tabGlobal.onClick = [this] { setPage(Page::global); };
+    tabChannel.onClick = [this] { setPage(Page::channel); };
+    tabComp.onClick = [this] { setPage(Page::global); };
+    tabAir.onClick = [this] { setPage(Page::global); };
+    tabDelay.onClick = [this] { setPage(Page::global); };
+    tabReverb.onClick = [this] { setPage(Page::global); };
+    tabRouting.onClick = [this] { setPage(Page::global); };
+    tabMeters.onClick = [this] { setPage(Page::global); };
 
     moduleLeds[0].setLedColour(F1Theme::green());
     moduleLeds[1].setLedColour(F1Theme::red());
@@ -24,6 +43,8 @@ F1Dashboard::F1Dashboard()
     addAndMakeVisible(inputMeter);
     addAndMakeVisible(outputMeter);
     addAndMakeVisible(gainReductionMeter);
+
+    setPage(Page::global);
 }
 
 void F1Dashboard::setMeterLevels(float input, float output, float gainReduction)
@@ -58,20 +79,27 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::red().withAlpha(0.9f));
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
-    auto display = inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
+    auto display = activePage == Page::channel
+                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, 80.0f).withY(inner.getY() + 18.0f)
+                       : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
     g.setColour(juce::Colour(0xff050607));
     g.fillRoundedRectangle(display, 8.0f);
     g.setColour(F1Theme::blue().withAlpha(0.55f));
     g.drawRoundedRectangle(display, 8.0f, 1.5f);
 
+    const auto title = activePage == Page::channel ? "CHANNEL EQ" : "GLOBAL CONTROL";
+    const auto route = activePage == Page::channel
+                           ? "TRIM > HPF > 4-BAND EQ > DRIVE > MIX"
+                           : "INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT";
+
     g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(26.0f, juce::Font::bold));
-    g.drawFittedText("INIT PASS-THROUGH", display.toNearestInt().reduced(10, 16), juce::Justification::centred, 1);
+    g.drawFittedText(title, display.toNearestInt().reduced(10, 16), juce::Justification::centred, 1);
 
     g.setColour(F1Theme::mutedText());
     g.setFont(juce::FontOptions(13.0f, juce::Font::bold));
     const auto routingTextTop = juce::roundToInt(display.getHeight() * 0.58f);
-    g.drawFittedText("INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT",
+    g.drawFittedText(route,
                      display.toNearestInt().withTrimmedTop(routingTextTop).reduced(10, 0),
                      juce::Justification::centred,
                      1);
@@ -94,6 +122,51 @@ void F1Dashboard::resized()
     gainReductionMeter.setBounds(meterArea.removeFromLeft(48));
 
     auto cockpit = area.reduced(50, 40);
+
+    if (activePage == Page::channel)
+        layoutChannelPage(cockpit);
+    else
+        layoutGlobalPage(cockpit);
+
+    auto ledArea = cockpit.withSizeKeepingCentre(260, 24).translated(0, 68);
+    for (auto& led : moduleLeds)
+        led.setBounds(ledArea.removeFromLeft(52).withSizeKeepingCentre(18, 18));
+}
+
+void F1Dashboard::setPage(Page newPage)
+{
+    activePage = newPage;
+    tabGlobal.setToggleState(activePage == Page::global, juce::dontSendNotification);
+    tabChannel.setToggleState(activePage == Page::channel, juce::dontSendNotification);
+    updateControlVisibility();
+    resized();
+    repaint();
+}
+
+void F1Dashboard::updateControlVisibility()
+{
+    const auto onGlobal = activePage == Page::global;
+    const auto onChannel = activePage == Page::channel;
+
+    for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
+        knob->setVisible(onGlobal);
+
+    for (auto* knob : { &channelInputTrim, &channelHighPass, &channelLowPass, &channelLowGain, &channelLowFreq,
+                        &channelLowMidGain, &channelLowMidFreq, &channelHighMidGain, &channelHighMidFreq,
+                        &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
+        knob->setVisible(onChannel);
+
+    globalBypass.setVisible(onGlobal);
+    compEnabled.setVisible(onGlobal);
+    airEnabled.setVisible(onGlobal);
+    delayEnabled.setVisible(onGlobal);
+    reverbEnabled.setVisible(onGlobal);
+    channelEnabled.setVisible(true);
+    channelPhaseInvert.setVisible(onChannel);
+}
+
+void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
+{
     auto topKnobs = cockpit.removeFromTop(150);
     auto bottomKnobs = cockpit.removeFromBottom(150);
 
@@ -114,8 +187,52 @@ void F1Dashboard::resized()
     airEnabled.setBounds(switchArea.removeFromLeft(58).reduced(4, 12));
     delayEnabled.setBounds(switchArea.removeFromLeft(70).reduced(4, 12));
     reverbEnabled.setBounds(switchArea.removeFromLeft(78).reduced(4, 12));
+}
 
-    auto ledArea = cockpit.withSizeKeepingCentre(260, 24).translated(0, 68);
-    for (auto& led : moduleLeds)
-        led.setBounds(ledArea.removeFromLeft(52).withSizeKeepingCentre(18, 18));
+void F1Dashboard::layoutChannelPage(juce::Rectangle<int> cockpit)
+{
+    auto controls = cockpit.reduced(44, 0);
+    controls.removeFromTop(70);
+    controls.removeFromBottom(62);
+
+    constexpr auto columns = 5;
+    constexpr auto rows = 3;
+    constexpr auto cellWidth = 112;
+    constexpr auto cellHeight = 102;
+    constexpr auto gapX = 10;
+    constexpr auto gapY = 6;
+
+    const auto gridWidth = columns * cellWidth + (columns - 1) * gapX;
+    const auto gridHeight = rows * cellHeight + (rows - 1) * gapY;
+    auto grid = juce::Rectangle<int>(gridWidth, gridHeight).withCentre(controls.getCentre());
+
+    std::array<GordoKnob*, 13> knobs {
+        &channelInputTrim,
+        &channelHighPass,
+        &channelLowPass,
+        &channelDrive,
+        &channelPageMix,
+        &channelLowGain,
+        &channelLowFreq,
+        &channelLowMidGain,
+        &channelLowMidFreq,
+        &channelHighMidGain,
+        &channelHighMidFreq,
+        &channelHighGain,
+        &channelHighFreq
+    };
+
+    for (auto index = 0; index < static_cast<int>(knobs.size()); ++index)
+    {
+        const auto row = index / columns;
+        const auto column = index % columns;
+        knobs[static_cast<size_t>(index)]->setBounds(grid.getX() + column * (cellWidth + gapX),
+                                                     grid.getY() + row * (cellHeight + gapY),
+                                                     cellWidth,
+                                                     cellHeight);
+    }
+
+    auto switchArea = cockpit.withTrimmedTop(cockpit.getHeight() - 60).withSizeKeepingCentre(190, 54);
+    channelEnabled.setBounds(switchArea.removeFromLeft(90).reduced(4, 10));
+    channelPhaseInvert.setBounds(switchArea.removeFromLeft(96).reduced(4, 10));
 }

@@ -10,6 +10,24 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
     inputGainDbParam = apvts.getRawParameterValue(Parameters::inputGainDb);
     outputGainDbParam = apvts.getRawParameterValue(Parameters::outputGainDb);
     globalBypassParam = apvts.getRawParameterValue(Parameters::globalBypass);
+
+    channel.setParameters({
+        apvts.getRawParameterValue(Parameters::channelEnabled),
+        apvts.getRawParameterValue(Parameters::channelInputTrimDb),
+        apvts.getRawParameterValue(Parameters::phaseInvert),
+        apvts.getRawParameterValue(Parameters::highPassHz),
+        apvts.getRawParameterValue(Parameters::lowPassHz),
+        apvts.getRawParameterValue(Parameters::lowGainDb),
+        apvts.getRawParameterValue(Parameters::lowFreqHz),
+        apvts.getRawParameterValue(Parameters::lowMidGainDb),
+        apvts.getRawParameterValue(Parameters::lowMidFreqHz),
+        apvts.getRawParameterValue(Parameters::highMidGainDb),
+        apvts.getRawParameterValue(Parameters::highMidFreqHz),
+        apvts.getRawParameterValue(Parameters::highGainDb),
+        apvts.getRawParameterValue(Parameters::highFreqHz),
+        apvts.getRawParameterValue(Parameters::drive),
+        apvts.getRawParameterValue(Parameters::channelMix)
+    });
 }
 
 void F1DoGordoAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -65,9 +83,8 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 
     if (! bypassed)
     {
-        // Current audio-affecting controls: inputGainDb, outputGainDb and globalBypass.
-        // Mix/send/width and module enable parameters are APVTS-wired for UI/host automation;
-        // the placeholder modules stay neutral until their DSP is implemented.
+        // Current audio-affecting controls: global gain/bypass and Channel/EQ.
+        // FET, Air, Delay and Reverb remain neutral placeholders until their DSP pass.
         const auto inputGain = juce::Decibels::decibelsToGain(inputGainDbParam != nullptr ? inputGainDbParam->load() : 0.0f);
         const auto outputGain = juce::Decibels::decibelsToGain(outputGainDbParam != nullptr ? outputGainDbParam->load() : 0.0f);
 

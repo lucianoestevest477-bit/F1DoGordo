@@ -18,6 +18,19 @@ namespace Parameters
     inline constexpr auto delaySend = "delaySend";
     inline constexpr auto reverbSend = "reverbSend";
     inline constexpr auto masterWidth = "masterWidth";
+    inline constexpr auto channelInputTrimDb = "channelInputTrimDb";
+    inline constexpr auto phaseInvert = "phaseInvert";
+    inline constexpr auto highPassHz = "highPassHz";
+    inline constexpr auto lowPassHz = "lowPassHz";
+    inline constexpr auto lowGainDb = "lowGainDb";
+    inline constexpr auto lowFreqHz = "lowFreqHz";
+    inline constexpr auto lowMidGainDb = "lowMidGainDb";
+    inline constexpr auto lowMidFreqHz = "lowMidFreqHz";
+    inline constexpr auto highMidGainDb = "highMidGainDb";
+    inline constexpr auto highMidFreqHz = "highMidFreqHz";
+    inline constexpr auto highGainDb = "highGainDb";
+    inline constexpr auto highFreqHz = "highFreqHz";
+    inline constexpr auto drive = "drive";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

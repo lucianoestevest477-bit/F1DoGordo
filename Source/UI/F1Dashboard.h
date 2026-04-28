@@ -33,7 +33,33 @@ public:
     GordoButton delayEnabled { "DELAY" };
     GordoButton reverbEnabled { "REVERB" };
 
+    GordoKnob channelInputTrim { "TRIM" };
+    GordoKnob channelHighPass { "HPF" };
+    GordoKnob channelLowPass { "LPF" };
+    GordoKnob channelLowGain { "LOW" };
+    GordoKnob channelLowFreq { "LOW FREQ" };
+    GordoKnob channelLowMidGain { "LOW MID" };
+    GordoKnob channelLowMidFreq { "LOW MID FREQ" };
+    GordoKnob channelHighMidGain { "HIGH MID" };
+    GordoKnob channelHighMidFreq { "HIGH MID FREQ" };
+    GordoKnob channelHighGain { "HIGH" };
+    GordoKnob channelHighFreq { "HIGH FREQ" };
+    GordoKnob channelDrive { "DRIVE" };
+    GordoKnob channelPageMix { "MIX" };
+    GordoButton channelPhaseInvert { "PHASE" };
+
 private:
+    enum class Page
+    {
+        global,
+        channel
+    };
+
+    void setPage(Page newPage);
+    void updateControlVisibility();
+    void layoutGlobalPage(juce::Rectangle<int> cockpit);
+    void layoutChannelPage(juce::Rectangle<int> cockpit);
+
     GordoButton tabGlobal { "GLOBAL" };
     GordoButton tabChannel { "CHANNEL" };
     GordoButton tabComp { "COMP" };
@@ -58,4 +84,5 @@ private:
     GordoMeter inputMeter { "IN" };
     GordoMeter outputMeter { "OUT" };
     GordoMeter gainReductionMeter { "GR" };
+    Page activePage = Page::global;
 };

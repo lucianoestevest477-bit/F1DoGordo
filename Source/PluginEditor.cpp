@@ -15,9 +15,8 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
-    // GLOBAL screen control map:
-    // INPUT=inputGainDb and OUTPUT=outputGainDb affect audio now.
-    // TONE/PUNCH/AIR/ECHO/SPACE/WIDTH are APVTS-wired macro controls reserved for future DSP modules.
+    // GLOBAL screen control map: INPUT/OUTPUT and CHANNEL/TONE affect audio now.
+    // PUNCH/AIR/ECHO/SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::outputGainDb, dashboard.outputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelMix));
@@ -27,12 +26,28 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbSend, dashboard.reverbSend));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::masterWidth, dashboard.masterWidth));
 
+    // CHANNEL page control map: these parameters are processed by ChannelModule.
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelInputTrimDb, dashboard.channelInputTrim));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::highPassHz, dashboard.channelHighPass));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::lowPassHz, dashboard.channelLowPass));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::lowGainDb, dashboard.channelLowGain));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::lowFreqHz, dashboard.channelLowFreq));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::lowMidGainDb, dashboard.channelLowMidGain));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::lowMidFreqHz, dashboard.channelLowMidFreq));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::highMidGainDb, dashboard.channelHighMidGain));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::highMidFreqHz, dashboard.channelHighMidFreq));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::highGainDb, dashboard.channelHighGain));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::highFreqHz, dashboard.channelHighFreq));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::drive, dashboard.channelDrive));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelPageMix));
+
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::globalBypass, dashboard.globalBypass));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::channelEnabled, dashboard.channelEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::airEnabled, dashboard.airEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayEnabled, dashboard.delayEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbEnabled, dashboard.reverbEnabled));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::phaseInvert, dashboard.channelPhaseInvert));
 
     startTimerHz(24);
 }
