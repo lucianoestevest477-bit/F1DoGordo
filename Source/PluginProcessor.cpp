@@ -78,6 +78,32 @@ F1DoGordoAudioProcessor::F1DoGordoAudioProcessor()
         apvts.getRawParameterValue(Parameters::delayStereoWidth),
         apvts.getRawParameterValue(Parameters::delaySend)
     });
+
+    reverb.setParameters({
+        apvts.getRawParameterValue(Parameters::reverbEnabled),
+        apvts.getRawParameterValue(Parameters::reverbMix),
+        apvts.getRawParameterValue(Parameters::reverbPredelayMs),
+        apvts.getRawParameterValue(Parameters::reverbDecaySec),
+        apvts.getRawParameterValue(Parameters::reverbSize),
+        apvts.getRawParameterValue(Parameters::reverbAttack),
+        apvts.getRawParameterValue(Parameters::reverbEarly),
+        apvts.getRawParameterValue(Parameters::reverbLate),
+        apvts.getRawParameterValue(Parameters::reverbLowCutHz),
+        apvts.getRawParameterValue(Parameters::reverbHighCutHz),
+        apvts.getRawParameterValue(Parameters::reverbLowDampHz),
+        apvts.getRawParameterValue(Parameters::reverbHighDampDb),
+        apvts.getRawParameterValue(Parameters::reverbDiffusionEarly),
+        apvts.getRawParameterValue(Parameters::reverbDiffusionLate),
+        apvts.getRawParameterValue(Parameters::reverbModRate),
+        apvts.getRawParameterValue(Parameters::reverbModDepth),
+        apvts.getRawParameterValue(Parameters::reverbWidth),
+        apvts.getRawParameterValue(Parameters::reverbMode),
+        apvts.getRawParameterValue(Parameters::reverbColor),
+        apvts.getRawParameterValue(Parameters::reverbFreeze),
+        apvts.getRawParameterValue(Parameters::reverbDucking),
+        apvts.getRawParameterValue(Parameters::reverbTempoSyncPredelay),
+        apvts.getRawParameterValue(Parameters::reverbMonoBass)
+    });
 }
 
 void F1DoGordoAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -133,8 +159,8 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
 
     if (! bypassed)
     {
-        // Current audio-affecting controls: global gain/bypass, Channel/EQ, FET compressor, Air Exciter and Delay.
-        // Reverb remains a neutral placeholder until its DSP pass.
+        // Current audio-affecting controls: global gain/bypass, Channel/EQ, FET compressor,
+        // Air Exciter, Delay and Reverb in the fixed module order.
         const auto inputGain = juce::Decibels::decibelsToGain(inputGainDbParam != nullptr ? inputGainDbParam->load() : 0.0f);
         const auto outputGain = juce::Decibels::decibelsToGain(outputGainDbParam != nullptr ? outputGainDbParam->load() : 0.0f);
         auto hostBpm = 120.0;
@@ -150,6 +176,7 @@ void F1DoGordoAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
         airExciter.process(buffer);
         delay.setHostBpm(hostBpm);
         delay.process(buffer);
+        reverb.setHostBpm(hostBpm);
         reverb.process(buffer);
         buffer.applyGain(outputGain);
     }

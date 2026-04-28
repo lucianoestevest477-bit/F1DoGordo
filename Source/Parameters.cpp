@@ -114,6 +114,33 @@ namespace
                 }));
     }
 
+    std::unique_ptr<juce::AudioParameterFloat> makeSecondsParameter(const juce::String& id,
+                                                                    const juce::String& name,
+                                                                    float minSeconds,
+                                                                    float maxSeconds,
+                                                                    float defaultValue,
+                                                                    float centreSeconds)
+    {
+        juce::NormalisableRange<float> range { minSeconds, maxSeconds, 0.001f };
+        range.setSkewForCentre(centreSeconds);
+
+        return std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID { id, 1 },
+            name,
+            range,
+            defaultValue,
+            juce::AudioParameterFloatAttributes()
+                .withLabel("s")
+                .withStringFromValueFunction([](float value, int maximumStringLength)
+                {
+                    return trimToLength(juce::String(value, value < 10.0f ? 2 : 1) + " s", maximumStringLength);
+                })
+                .withValueFromStringFunction([](const juce::String& text)
+                {
+                    return text.retainCharacters("0123456789.-").getFloatValue();
+                }));
+    }
+
     std::unique_ptr<juce::AudioParameterFloat> makeRateParameter(const juce::String& id,
                                                                  const juce::String& name,
                                                                  float minHz,
@@ -242,6 +269,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
     params.push_back(makePercentParameter(delayDucking, "Delay Ducking", 0.0f));
     params.push_back(makeBoolParameter(delayFreeze, "Delay Freeze", false));
     params.push_back(makePercentParameter(delayStereoWidth, "Delay Stereo Width", 1.0f));
+
+    // Reverb parameters: active DSP in ReverbModule. reverbSend is kept as a legacy macro ID.
+    params.push_back(makePercentParameter(reverbMix, "Reverb Mix", 0.0f));
+    params.push_back(makeMillisecondsParameter(reverbPredelayMs, "Reverb Predelay", 0.0f, 250.0f, 20.0f, 45.0f));
+    params.push_back(makeSecondsParameter(reverbDecaySec, "Reverb Decay", 0.3f, 14.0f, 2.4f, 2.5f));
+    params.push_back(makePercentParameter(reverbSize, "Reverb Size", 0.55f));
+    params.push_back(makePercentParameter(reverbAttack, "Reverb Attack", 0.0f));
+    params.push_back(makePercentParameter(reverbEarly, "Reverb Early", 0.35f));
+    params.push_back(makePercentParameter(reverbLate, "Reverb Late", 0.75f));
+    params.push_back(makeFrequencyParameter(reverbLowCutHz, "Reverb Low Cut", 20.0f, 1000.0f, 120.0f, 140.0f));
+    params.push_back(makeFrequencyParameter(reverbHighCutHz, "Reverb High Cut", 1000.0f, 20000.0f, 12000.0f, 7000.0f));
+    params.push_back(makeFrequencyParameter(reverbLowDampHz, "Reverb Low Damp", 40.0f, 1000.0f, 220.0f, 220.0f));
+    params.push_back(makeGainParameter(reverbHighDampDb, "Reverb High Damp", -24.0f, 0.0f, -6.0f));
+    params.push_back(makePercentParameter(reverbDiffusionEarly, "Reverb Early Diffusion", 0.45f));
+    params.push_back(makePercentParameter(reverbDiffusionLate, "Reverb Late Diffusion", 0.65f));
+    params.push_back(makeRateParameter(reverbModRate, "Reverb Mod Rate", 0.05f, 5.0f, 0.25f, 0.6f));
+    params.push_back(makePercentParameter(reverbModDepth, "Reverb Mod Depth", 0.10f));
+    params.push_back(makePercentParameter(reverbWidth, "Reverb Width", 1.0f));
+    params.push_back(makeChoiceParameter(reverbMode, "Reverb Mode", { "SmallRoom", "MediumRoom", "LargeHall", "ConcertHall", "Plate", "Chamber", "Cathedral", "Ambience", "Reverse" }, 2));
+    params.push_back(makeChoiceParameter(reverbColor, "Reverb Color", { "ModernClean", "Bright80s", "Dark70s", "LoFi", "Tape", "DigitalVintage" }, 0));
+    params.push_back(makeBoolParameter(reverbFreeze, "Reverb Freeze", false));
+    params.push_back(makePercentParameter(reverbDucking, "Reverb Ducking", 0.0f));
+    params.push_back(makeBoolParameter(reverbTempoSyncPredelay, "Reverb Sync Predelay", false));
+    params.push_back(makeBoolParameter(reverbMonoBass, "Reverb Mono Bass", false));
 
     return { params.begin(), params.end() };
 }

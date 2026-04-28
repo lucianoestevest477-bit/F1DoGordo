@@ -66,6 +66,28 @@ namespace Parameters
     inline constexpr auto delayDucking = "delayDucking";
     inline constexpr auto delayFreeze = "delayFreeze";
     inline constexpr auto delayStereoWidth = "delayStereoWidth";
+    inline constexpr auto reverbMix = "reverbMix";
+    inline constexpr auto reverbPredelayMs = "reverbPredelayMs";
+    inline constexpr auto reverbDecaySec = "reverbDecaySec";
+    inline constexpr auto reverbSize = "reverbSize";
+    inline constexpr auto reverbAttack = "reverbAttack";
+    inline constexpr auto reverbEarly = "reverbEarly";
+    inline constexpr auto reverbLate = "reverbLate";
+    inline constexpr auto reverbLowCutHz = "reverbLowCutHz";
+    inline constexpr auto reverbHighCutHz = "reverbHighCutHz";
+    inline constexpr auto reverbLowDampHz = "reverbLowDampHz";
+    inline constexpr auto reverbHighDampDb = "reverbHighDampDb";
+    inline constexpr auto reverbDiffusionEarly = "reverbDiffusionEarly";
+    inline constexpr auto reverbDiffusionLate = "reverbDiffusionLate";
+    inline constexpr auto reverbModRate = "reverbModRate";
+    inline constexpr auto reverbModDepth = "reverbModDepth";
+    inline constexpr auto reverbWidth = "reverbWidth";
+    inline constexpr auto reverbMode = "reverbMode";
+    inline constexpr auto reverbColor = "reverbColor";
+    inline constexpr auto reverbFreeze = "reverbFreeze";
+    inline constexpr auto reverbDucking = "reverbDucking";
+    inline constexpr auto reverbTempoSyncPredelay = "reverbTempoSyncPredelay";
+    inline constexpr auto reverbMonoBass = "reverbMonoBass";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

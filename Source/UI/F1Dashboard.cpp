@@ -24,6 +24,12 @@ F1Dashboard::F1Dashboard()
                         &delayLoFi, &delayModDepth, &delayModRate, &delayDucking })
         addAndMakeVisible(*knob);
 
+    for (auto* knob : { &reverbPageMix, &reverbPredelay, &reverbDecay, &reverbSize, &reverbAttack, &reverbWidth,
+                        &reverbEarly, &reverbLate, &reverbDiffEarly, &reverbDiffLate, &reverbModRate, &reverbModDepth,
+                        &reverbLowCut, &reverbHighCut, &reverbLowDamp, &reverbHighDamp, &reverbMode, &reverbColor,
+                        &reverbDucking })
+        addAndMakeVisible(*knob);
+
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
@@ -34,6 +40,10 @@ F1Dashboard::F1Dashboard()
     addAndMakeVisible(delayLink);
     addAndMakeVisible(delayFreeze);
     addAndMakeVisible(delayPageEnabled);
+    addAndMakeVisible(reverbFreeze);
+    addAndMakeVisible(reverbSyncPredelay);
+    addAndMakeVisible(reverbMonoBass);
+    addAndMakeVisible(reverbPageEnabled);
 
     for (auto* tab : tabs)
     {
@@ -46,7 +56,7 @@ F1Dashboard::F1Dashboard()
     tabComp.onClick = [this] { setPage(Page::comp); };
     tabAir.onClick = [this] { setPage(Page::air); };
     tabDelay.onClick = [this] { setPage(Page::delay); };
-    tabReverb.onClick = [this] { setPage(Page::global); };
+    tabReverb.onClick = [this] { setPage(Page::reverb); };
     tabRouting.onClick = [this] { setPage(Page::global); };
     tabMeters.onClick = [this] { setPage(Page::global); };
 
@@ -104,7 +114,8 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::red().withAlpha(0.9f));
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
-    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air || activePage == Page::delay;
+    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air
+                             || activePage == Page::delay || activePage == Page::reverb;
     auto display = compactDisplay
                        ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
                        : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
@@ -135,6 +146,11 @@ void F1Dashboard::paint(juce::Graphics& g)
     {
         title = "DELAY";
         route = "SEND > TIME/SYNC > FILTERED FEEDBACK > RETURN";
+    }
+    else if (activePage == Page::reverb)
+    {
+        title = "REVERB";
+        route = "PREDELAY > EARLY > LATE TANK > COLOR > MIX";
     }
 
     g.setColour(F1Theme::text());
@@ -176,6 +192,8 @@ void F1Dashboard::resized()
         layoutAirPage(cockpit);
     else if (activePage == Page::delay)
         layoutDelayPage(cockpit);
+    else if (activePage == Page::reverb)
+        layoutReverbPage(cockpit);
     else
         layoutGlobalPage(cockpit);
 
@@ -192,6 +210,7 @@ void F1Dashboard::setPage(Page newPage)
     tabComp.setToggleState(activePage == Page::comp, juce::dontSendNotification);
     tabAir.setToggleState(activePage == Page::air, juce::dontSendNotification);
     tabDelay.setToggleState(activePage == Page::delay, juce::dontSendNotification);
+    tabReverb.setToggleState(activePage == Page::reverb, juce::dontSendNotification);
     updateControlVisibility();
     resized();
     repaint();
@@ -204,6 +223,7 @@ void F1Dashboard::updateControlVisibility()
     const auto onComp = activePage == Page::comp;
     const auto onAir = activePage == Page::air;
     const auto onDelay = activePage == Page::delay;
+    const auto onReverb = activePage == Page::reverb;
 
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         knob->setVisible(onGlobal);
@@ -226,6 +246,12 @@ void F1Dashboard::updateControlVisibility()
                         &delayLoFi, &delayModDepth, &delayModRate, &delayDucking })
         knob->setVisible(onDelay);
 
+    for (auto* knob : { &reverbPageMix, &reverbPredelay, &reverbDecay, &reverbSize, &reverbAttack, &reverbWidth,
+                        &reverbEarly, &reverbLate, &reverbDiffEarly, &reverbDiffLate, &reverbModRate, &reverbModDepth,
+                        &reverbLowCut, &reverbHighCut, &reverbLowDamp, &reverbHighDamp, &reverbMode, &reverbColor,
+                        &reverbDucking })
+        knob->setVisible(onReverb);
+
     globalBypass.setVisible(onGlobal);
     channelEnabled.setVisible(onGlobal);
     compEnabled.setVisible(onGlobal);
@@ -239,6 +265,10 @@ void F1Dashboard::updateControlVisibility()
     delayLink.setVisible(onDelay);
     delayFreeze.setVisible(onDelay);
     delayPageEnabled.setVisible(onDelay);
+    reverbFreeze.setVisible(onReverb);
+    reverbSyncPredelay.setVisible(onReverb);
+    reverbMonoBass.setVisible(onReverb);
+    reverbPageEnabled.setVisible(onReverb);
 }
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
@@ -452,4 +482,70 @@ void F1Dashboard::layoutDelayPage(juce::Rectangle<int> cockpit)
     placeKnob(row3, delayDucking);
     placeButton(row3, delayFreeze);
     placeButton(row3, delayPageEnabled);
+}
+
+void F1Dashboard::layoutReverbPage(juce::Rectangle<int> cockpit)
+{
+    auto controls = cockpit.reduced(10, 0);
+    controls.removeFromTop(66);
+
+    constexpr auto knobWidth = 98;
+    constexpr auto knobHeight = 90;
+    constexpr auto buttonWidth = 96;
+    constexpr auto buttonHeight = 42;
+    constexpr auto gapX = 8;
+    constexpr auto gapY = 5;
+
+    auto makeRow = [=] (juce::Rectangle<int> rowArea, int knobCount, int buttonCount)
+    {
+        const auto itemCount = knobCount + buttonCount;
+        const auto rowWidth = knobCount * knobWidth + buttonCount * buttonWidth + (itemCount - 1) * gapX;
+        return juce::Rectangle<int>(rowWidth, knobHeight).withCentre(rowArea.getCentre());
+    };
+
+    auto placeKnob = [=] (juce::Rectangle<int>& row, GordoKnob& knob)
+    {
+        knob.setBounds(row.removeFromLeft(knobWidth));
+        row.removeFromLeft(gapX);
+    };
+
+    auto placeButton = [=] (juce::Rectangle<int>& row, GordoButton& button)
+    {
+        button.setBounds(row.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+        row.removeFromLeft(gapX);
+    };
+
+    auto row1 = makeRow(controls.removeFromTop(knobHeight), 6, 0);
+    placeKnob(row1, reverbPageMix);
+    placeKnob(row1, reverbPredelay);
+    placeKnob(row1, reverbDecay);
+    placeKnob(row1, reverbSize);
+    placeKnob(row1, reverbAttack);
+    placeKnob(row1, reverbWidth);
+
+    controls.removeFromTop(gapY);
+    auto row2 = makeRow(controls.removeFromTop(knobHeight), 6, 0);
+    placeKnob(row2, reverbEarly);
+    placeKnob(row2, reverbLate);
+    placeKnob(row2, reverbDiffEarly);
+    placeKnob(row2, reverbDiffLate);
+    placeKnob(row2, reverbModRate);
+    placeKnob(row2, reverbModDepth);
+
+    controls.removeFromTop(gapY);
+    auto row3 = makeRow(controls.removeFromTop(knobHeight), 6, 0);
+    placeKnob(row3, reverbLowCut);
+    placeKnob(row3, reverbHighCut);
+    placeKnob(row3, reverbLowDamp);
+    placeKnob(row3, reverbHighDamp);
+    placeKnob(row3, reverbMode);
+    placeKnob(row3, reverbColor);
+
+    controls.removeFromTop(gapY);
+    auto row4 = makeRow(controls.removeFromTop(knobHeight), 1, 4);
+    placeKnob(row4, reverbDucking);
+    placeButton(row4, reverbFreeze);
+    placeButton(row4, reverbSyncPredelay);
+    placeButton(row4, reverbMonoBass);
+    placeButton(row4, reverbPageEnabled);
 }

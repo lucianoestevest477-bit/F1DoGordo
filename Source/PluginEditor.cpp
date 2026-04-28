@@ -15,15 +15,15 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
-    // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH, AIR and ECHO affect audio now.
-    // SPACE/WIDTH remain APVTS-wired macro controls reserved for future DSP modules.
+    // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH, AIR, ECHO and SPACE affect audio now.
+    // reverbSend remains in the APVTS as a legacy macro ID; SPACE controls the active reverbMix parameter.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::outputGainDb, dashboard.outputGain));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelMix));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compMix, dashboard.compMix));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::airMix, dashboard.airMix));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delaySend, dashboard.delaySend));
-    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbSend, dashboard.reverbSend));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbMix, dashboard.reverbSend));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::masterWidth, dashboard.masterWidth));
 
     // CHANNEL page control map: these parameters are processed by ChannelModule.
@@ -83,6 +83,27 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayModRate, dashboard.delayModRate));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::delayDucking, dashboard.delayDucking));
 
+    // REVERB page control map: these parameters are processed by ReverbModule.
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbMix, dashboard.reverbPageMix));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbPredelayMs, dashboard.reverbPredelay));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbDecaySec, dashboard.reverbDecay));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbSize, dashboard.reverbSize));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbAttack, dashboard.reverbAttack));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbWidth, dashboard.reverbWidth));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbEarly, dashboard.reverbEarly));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbLate, dashboard.reverbLate));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbDiffusionEarly, dashboard.reverbDiffEarly));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbDiffusionLate, dashboard.reverbDiffLate));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbModRate, dashboard.reverbModRate));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbModDepth, dashboard.reverbModDepth));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbLowCutHz, dashboard.reverbLowCut));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbHighCutHz, dashboard.reverbHighCut));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbLowDampHz, dashboard.reverbLowDamp));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbHighDampDb, dashboard.reverbHighDamp));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbMode, dashboard.reverbMode));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbColor, dashboard.reverbColor));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::reverbDucking, dashboard.reverbDucking));
+
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::globalBypass, dashboard.globalBypass));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::channelEnabled, dashboard.channelEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compEnabled));
@@ -96,6 +117,10 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayLink, dashboard.delayLink));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayFreeze, dashboard.delayFreeze));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayEnabled, dashboard.delayPageEnabled));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbFreeze, dashboard.reverbFreeze));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbTempoSyncPredelay, dashboard.reverbSyncPredelay));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbMonoBass, dashboard.reverbMonoBass));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbEnabled, dashboard.reverbPageEnabled));
 
     startTimerHz(24);
 }

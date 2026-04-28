@@ -93,6 +93,30 @@ public:
     GordoButton delayFreeze { "FREEZE" };
     GordoButton delayPageEnabled { "ON" };
 
+    GordoKnob reverbPageMix { "MIX" };
+    GordoKnob reverbPredelay { "PREDELAY" };
+    GordoKnob reverbDecay { "DECAY" };
+    GordoKnob reverbSize { "SIZE" };
+    GordoKnob reverbAttack { "ATTACK" };
+    GordoKnob reverbWidth { "WIDTH" };
+    GordoKnob reverbEarly { "EARLY" };
+    GordoKnob reverbLate { "LATE" };
+    GordoKnob reverbDiffEarly { "DIFF EARLY" };
+    GordoKnob reverbDiffLate { "DIFF LATE" };
+    GordoKnob reverbModRate { "MOD RATE" };
+    GordoKnob reverbModDepth { "MOD DEPTH" };
+    GordoKnob reverbLowCut { "LOW CUT" };
+    GordoKnob reverbHighCut { "HIGH CUT" };
+    GordoKnob reverbLowDamp { "LOW DAMP" };
+    GordoKnob reverbHighDamp { "HIGH DAMP" };
+    GordoKnob reverbMode { "MODE" };
+    GordoKnob reverbColor { "COLOR" };
+    GordoKnob reverbDucking { "DUCKING" };
+    GordoButton reverbFreeze { "FREEZE" };
+    GordoButton reverbSyncPredelay { "SYNC PRE" };
+    GordoButton reverbMonoBass { "MONO BASS" };
+    GordoButton reverbPageEnabled { "ON" };
+
 private:
     enum class Page
     {
@@ -100,7 +124,8 @@ private:
         channel,
         comp,
         air,
-        delay
+        delay,
+        reverb
     };
 
     void setPage(Page newPage);
@@ -110,6 +135,7 @@ private:
     void layoutCompPage(juce::Rectangle<int> cockpit);
     void layoutAirPage(juce::Rectangle<int> cockpit);
     void layoutDelayPage(juce::Rectangle<int> cockpit);
+    void layoutReverbPage(juce::Rectangle<int> cockpit);
 
     GordoButton tabGlobal { "GLOBAL" };
     GordoButton tabChannel { "CHANNEL" };
