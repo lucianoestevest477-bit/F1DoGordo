@@ -61,8 +61,9 @@ void F1Dashboard::paint(juce::Graphics& g)
 
     g.setColour(F1Theme::mutedText());
     g.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    const auto routingTextTop = juce::roundToInt(display.getHeight() * 0.58f);
     g.drawFittedText("INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT",
-                     display.toNearestInt().withTrimmedTop(display.getHeight() * 0.58f).reduced(10, 0),
+                     display.toNearestInt().withTrimmedTop(routingTextTop).reduced(10, 0),
                      juce::Justification::centred,
                      1);
 }

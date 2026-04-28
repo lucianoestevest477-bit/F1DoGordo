@@ -18,6 +18,7 @@ FetchContent_MakeAvailable(JUCE)
 
 juce_add_plugin(F1DoGordo
     COMPANY_NAME "Gordo Audio"
+    BUNDLE_ID com.gordoaudio.f1dogordo
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
