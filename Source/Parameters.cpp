@@ -83,6 +83,37 @@ namespace
                 }));
     }
 
+    std::unique_ptr<juce::AudioParameterFloat> makeMillisecondsParameter(const juce::String& id,
+                                                                         const juce::String& name,
+                                                                         float minMs,
+                                                                         float maxMs,
+                                                                         float defaultValue,
+                                                                         float centreMs)
+    {
+        juce::NormalisableRange<float> range { minMs, maxMs, 0.001f };
+        range.setSkewForCentre(centreMs);
+
+        return std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID { id, 1 },
+            name,
+            range,
+            defaultValue,
+            juce::AudioParameterFloatAttributes()
+                .withLabel("ms")
+                .withStringFromValueFunction([](float value, int maximumStringLength)
+                {
+                    const auto text = value < 1.0f
+                                          ? juce::String(juce::roundToInt(value * 1000.0f)) + " us"
+                                          : juce::String(value, value < 10.0f ? 2 : 0) + " ms";
+                    return trimToLength(text, maximumStringLength);
+                })
+                .withValueFromStringFunction([](const juce::String& text)
+                {
+                    const auto parsed = text.retainCharacters("0123456789.-").getFloatValue();
+                    return text.toLowerCase().contains("us") ? parsed / 1000.0f : parsed;
+                }));
+    }
+
     std::unique_ptr<juce::AudioParameterBool> makeBoolParameter(const juce::String& id,
                                                                 const juce::String& name,
                                                                 bool defaultValue)
@@ -91,6 +122,18 @@ namespace
             juce::ParameterID { id, 1 },
             name,
             defaultValue);
+    }
+
+    std::unique_ptr<juce::AudioParameterChoice> makeChoiceParameter(const juce::String& id,
+                                                                    const juce::String& name,
+                                                                    juce::StringArray choices,
+                                                                    int defaultIndex)
+    {
+        return std::make_unique<juce::AudioParameterChoice>(
+            juce::ParameterID { id, 1 },
+            name,
+            choices,
+            defaultIndex);
     }
 }
 
@@ -130,6 +173,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
     params.push_back(makeGainParameter(highGainDb, "High Gain", -12.0f, 12.0f));
     params.push_back(makeFrequencyParameter(highFreqHz, "High Frequency", 3000.0f, 16000.0f, 8000.0f, 8000.0f));
     params.push_back(makePercentParameter(drive, "Drive", 0.0f));
+
+    // FET compressor parameters: active DSP in FETCompressorModule.
+    params.push_back(makeGainParameter(compInputDb, "Compressor Input", -24.0f, 24.0f));
+    params.push_back(makeGainParameter(compOutputDb, "Compressor Output", -24.0f, 24.0f));
+    params.push_back(makeMillisecondsParameter(compAttack, "Compressor Attack", 0.02f, 2.0f, 0.45f, 0.2f));
+    params.push_back(makeMillisecondsParameter(compRelease, "Compressor Release", 50.0f, 1200.0f, 220.0f, 250.0f));
+    params.push_back(makeChoiceParameter(compRatio, "Compressor Ratio", { "4:1", "8:1", "12:1", "20:1", "All" }, 0));
+    params.push_back(makeFrequencyParameter(compSidechainHpHz, "Compressor Sidechain HPF", 20.0f, 500.0f, 90.0f, 120.0f));
+    params.push_back(makeChoiceParameter(compRevision, "Compressor Revision", { "Clean", "Blue", "Black", "Hot" }, 0));
+    params.push_back(makeChoiceParameter(compNoiseMode, "Compressor Noise", { "Off", "Low", "High" }, 0));
 
     return { params.begin(), params.end() };
 }

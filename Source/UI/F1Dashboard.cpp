@@ -11,10 +11,15 @@ F1Dashboard::F1Dashboard()
                         &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
         addAndMakeVisible(*knob);
 
+    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
+                        &compSidechainHp, &compRevision, &compNoise })
+        addAndMakeVisible(*knob);
+
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
     addAndMakeVisible(channelPhaseInvert);
+    addAndMakeVisible(compPageEnabled);
 
     for (auto* tab : tabs)
     {
@@ -24,7 +29,7 @@ F1Dashboard::F1Dashboard()
 
     tabGlobal.onClick = [this] { setPage(Page::global); };
     tabChannel.onClick = [this] { setPage(Page::channel); };
-    tabComp.onClick = [this] { setPage(Page::global); };
+    tabComp.onClick = [this] { setPage(Page::comp); };
     tabAir.onClick = [this] { setPage(Page::global); };
     tabDelay.onClick = [this] { setPage(Page::global); };
     tabReverb.onClick = [this] { setPage(Page::global); };
@@ -79,7 +84,8 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::red().withAlpha(0.9f));
     g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
 
-    auto display = activePage == Page::channel
+    const auto compactDisplay = activePage == Page::channel || activePage == Page::comp;
+    auto display = compactDisplay
                        ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
                        : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
     g.setColour(juce::Colour(0xff050607));
@@ -87,10 +93,19 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.setColour(F1Theme::blue().withAlpha(0.55f));
     g.drawRoundedRectangle(display, 8.0f, 1.5f);
 
-    const auto title = activePage == Page::channel ? "CHANNEL EQ" : "GLOBAL CONTROL";
-    const auto route = activePage == Page::channel
-                           ? "TRIM > HPF > 4-BAND EQ > DRIVE > MIX"
-                           : "INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT";
+    auto title = juce::String("GLOBAL CONTROL");
+    auto route = juce::String("INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT");
+
+    if (activePage == Page::channel)
+    {
+        title = "CHANNEL EQ";
+        route = "TRIM > HPF > 4-BAND EQ > DRIVE > MIX";
+    }
+    else if (activePage == Page::comp)
+    {
+        title = "FET COMP";
+        route = "INPUT > DETECTOR HPF > FET GAIN > MIX";
+    }
 
     g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(26.0f, juce::Font::bold));
@@ -125,6 +140,8 @@ void F1Dashboard::resized()
 
     if (activePage == Page::channel)
         layoutChannelPage(cockpit);
+    else if (activePage == Page::comp)
+        layoutCompPage(cockpit);
     else
         layoutGlobalPage(cockpit);
 
@@ -138,6 +155,7 @@ void F1Dashboard::setPage(Page newPage)
     activePage = newPage;
     tabGlobal.setToggleState(activePage == Page::global, juce::dontSendNotification);
     tabChannel.setToggleState(activePage == Page::channel, juce::dontSendNotification);
+    tabComp.setToggleState(activePage == Page::comp, juce::dontSendNotification);
     updateControlVisibility();
     resized();
     repaint();
@@ -147,6 +165,7 @@ void F1Dashboard::updateControlVisibility()
 {
     const auto onGlobal = activePage == Page::global;
     const auto onChannel = activePage == Page::channel;
+    const auto onComp = activePage == Page::comp;
 
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         knob->setVisible(onGlobal);
@@ -156,6 +175,10 @@ void F1Dashboard::updateControlVisibility()
                         &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
         knob->setVisible(onChannel);
 
+    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
+                        &compSidechainHp, &compRevision, &compNoise })
+        knob->setVisible(onComp);
+
     globalBypass.setVisible(onGlobal);
     channelEnabled.setVisible(onGlobal);
     compEnabled.setVisible(onGlobal);
@@ -163,6 +186,7 @@ void F1Dashboard::updateControlVisibility()
     delayEnabled.setVisible(onGlobal);
     reverbEnabled.setVisible(onGlobal);
     channelPhaseInvert.setVisible(onChannel);
+    compPageEnabled.setVisible(onComp);
 }
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
@@ -239,4 +263,42 @@ void F1Dashboard::layoutChannelPage(juce::Rectangle<int> cockpit)
     controls.removeFromTop(gapY);
     layoutKnobs(controls.removeFromTop(knobHeight),
                 { &channelHighMidGain, &channelHighMidFreq, &channelHighGain, &channelHighFreq });
+}
+
+void F1Dashboard::layoutCompPage(juce::Rectangle<int> cockpit)
+{
+    auto controls = cockpit.reduced(34, 0);
+    controls.removeFromTop(96);
+    controls.removeFromBottom(42);
+
+    constexpr auto knobWidth = 126;
+    constexpr auto knobHeight = 116;
+    constexpr auto buttonWidth = 116;
+    constexpr auto buttonHeight = 48;
+    constexpr auto gapX = 12;
+    constexpr auto gapY = 18;
+
+    auto topRow = controls.removeFromTop(knobHeight);
+    const auto topRowWidth = 5 * knobWidth + 4 * gapX;
+    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
+
+    for (auto* knob : { &compInput, &compOutput, &compAttack, &compRelease, &compRatio })
+    {
+        knob->setBounds(top.removeFromLeft(knobWidth));
+        top.removeFromLeft(gapX);
+    }
+
+    controls.removeFromTop(gapY);
+
+    auto bottomRow = controls.removeFromTop(knobHeight);
+    const auto bottomRowWidth = 4 * knobWidth + buttonWidth + 4 * gapX;
+    auto bottom = juce::Rectangle<int>(bottomRowWidth, knobHeight).withCentre(bottomRow.getCentre());
+
+    for (auto* knob : { &compPageMix, &compSidechainHp, &compRevision, &compNoise })
+    {
+        knob->setBounds(bottom.removeFromLeft(knobWidth));
+        bottom.removeFromLeft(gapX);
+    }
+
+    compPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
 }

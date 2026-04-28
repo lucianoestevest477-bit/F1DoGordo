@@ -31,6 +31,14 @@ namespace Parameters
     inline constexpr auto highGainDb = "highGainDb";
     inline constexpr auto highFreqHz = "highFreqHz";
     inline constexpr auto drive = "drive";
+    inline constexpr auto compInputDb = "compInputDb";
+    inline constexpr auto compOutputDb = "compOutputDb";
+    inline constexpr auto compAttack = "compAttack";
+    inline constexpr auto compRelease = "compRelease";
+    inline constexpr auto compRatio = "compRatio";
+    inline constexpr auto compSidechainHpHz = "compSidechainHpHz";
+    inline constexpr auto compRevision = "compRevision";
+    inline constexpr auto compNoiseMode = "compNoiseMode";
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 }

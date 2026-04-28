@@ -48,17 +48,30 @@ public:
     GordoKnob channelPageMix { "MIX" };
     GordoButton channelPhaseInvert { "PHASE" };
 
+    GordoKnob compInput { "INPUT" };
+    GordoKnob compOutput { "OUTPUT" };
+    GordoKnob compAttack { "ATTACK" };
+    GordoKnob compRelease { "RELEASE" };
+    GordoKnob compRatio { "RATIO" };
+    GordoKnob compPageMix { "MIX" };
+    GordoKnob compSidechainHp { "SC HPF" };
+    GordoKnob compRevision { "REVISION" };
+    GordoKnob compNoise { "NOISE" };
+    GordoButton compPageEnabled { "ON" };
+
 private:
     enum class Page
     {
         global,
-        channel
+        channel,
+        comp
     };
 
     void setPage(Page newPage);
     void updateControlVisibility();
     void layoutGlobalPage(juce::Rectangle<int> cockpit);
     void layoutChannelPage(juce::Rectangle<int> cockpit);
+    void layoutCompPage(juce::Rectangle<int> cockpit);
 
     GordoButton tabGlobal { "GLOBAL" };
     GordoButton tabChannel { "CHANNEL" };

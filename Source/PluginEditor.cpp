@@ -41,6 +41,17 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::drive, dashboard.channelDrive));
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::channelMix, dashboard.channelPageMix));
 
+    // COMP page control map: these parameters are processed by FETCompressorModule.
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compInputDb, dashboard.compInput));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compOutputDb, dashboard.compOutput));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compAttack, dashboard.compAttack));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compRelease, dashboard.compRelease));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compRatio, dashboard.compRatio));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compMix, dashboard.compPageMix));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compSidechainHpHz, dashboard.compSidechainHp));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compRevision, dashboard.compRevision));
+    sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::compNoiseMode, dashboard.compNoise));
+
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::globalBypass, dashboard.globalBypass));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::channelEnabled, dashboard.channelEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compEnabled));
@@ -48,6 +59,7 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::delayEnabled, dashboard.delayEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::reverbEnabled, dashboard.reverbEnabled));
     buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::phaseInvert, dashboard.channelPhaseInvert));
+    buttonAttachments.push_back(std::make_unique<ButtonAttachment>(state, Parameters::compEnabled, dashboard.compPageEnabled));
 
     startTimerHz(24);
 }
