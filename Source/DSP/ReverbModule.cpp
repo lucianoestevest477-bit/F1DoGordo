@@ -119,36 +119,36 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
     const auto color = getColor();
     const auto modeSettings = getModeSettings(mode);
     const auto colorSettings = getColorSettings(color);
-    const auto size = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbSize, 0.55f));
-    const auto decaySeconds = juce::jlimit(0.3f, 18.0f, getParameterValue(parameters.reverbDecaySec, 2.4f) * modeSettings.decayScale);
-    const auto earlyAmount = juce::jlimit(0.0f, 1.4f, getParameterValue(parameters.reverbEarly, 0.35f) * modeSettings.earlyScale);
-    const auto lateAmount = juce::jlimit(0.0f, 1.4f, getParameterValue(parameters.reverbLate, 0.75f) * modeSettings.lateScale);
-    const auto diffEarly = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbDiffusionEarly, 0.45f));
-    const auto diffLate = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbDiffusionLate, 0.65f));
+    const auto size = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbSize, 0.50f));
+    const auto decaySeconds = juce::jlimit(0.3f, 18.0f, getParameterValue(parameters.reverbDecaySec, 1.85f) * modeSettings.decayScale);
+    const auto earlyAmount = juce::jlimit(0.0f, 1.4f, getParameterValue(parameters.reverbEarly, 0.55f) * modeSettings.earlyScale);
+    const auto lateAmount = juce::jlimit(0.0f, 1.4f, getParameterValue(parameters.reverbLate, 0.68f) * modeSettings.lateScale);
+    const auto diffEarly = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbDiffusionEarly, 0.38f));
+    const auto diffLate = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbDiffusionLate, 0.72f));
     const auto freezeEnabled = getParameterValue(parameters.reverbFreeze, 0.0f) > 0.5f;
     const auto monoBassEnabled = getParameterValue(parameters.reverbMonoBass, 0.0f) > 0.5f;
     const auto attack = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbAttack, 0.0f));
-    const auto lowCut = juce::jlimit(20.0f, 1000.0f, getParameterValue(parameters.reverbLowCutHz, 120.0f));
+    const auto lowCut = juce::jlimit(20.0f, 1000.0f, getParameterValue(parameters.reverbLowCutHz, 160.0f));
     const auto highCut = juce::jlimit(1000.0f, static_cast<float>(sampleRate * 0.45),
-                                      getParameterValue(parameters.reverbHighCutHz, 12000.0f) * colorSettings.brightness * modeSettings.brightness);
-    const auto lowDamp = juce::jlimit(40.0f, 1000.0f, getParameterValue(parameters.reverbLowDampHz, 220.0f));
-    const auto highDampDb = juce::jlimit(-24.0f, 0.0f, getParameterValue(parameters.reverbHighDampDb, -6.0f));
+                                      getParameterValue(parameters.reverbHighCutHz, 14000.0f) * colorSettings.brightness * modeSettings.brightness);
+    const auto lowDamp = juce::jlimit(40.0f, 1000.0f, getParameterValue(parameters.reverbLowDampHz, 320.0f));
+    const auto highDampDb = juce::jlimit(-24.0f, 0.0f, getParameterValue(parameters.reverbHighDampDb, -4.5f));
     const auto dampAmount = juce::jlimit(0.0f, 1.0f, -highDampDb / 24.0f);
-    const auto feedbackLowPassHz = juce::jlimit(650.0f, static_cast<float>(sampleRate * 0.45),
-                                                highCut * (1.0f - dampAmount * 0.72f));
+    const auto feedbackLowPassHz = juce::jlimit(850.0f, static_cast<float>(sampleRate * 0.45),
+                                                highCut * (1.0f - dampAmount * 0.60f) * colorSettings.damping);
     const auto wetHighPassAlpha = highPassAlpha(sampleRate, lowCut);
     const auto wetLowPassCoefficient = lowPassCoefficient(sampleRate, highCut);
     const auto feedbackHighPassAlpha = highPassAlpha(sampleRate, lowDamp);
     const auto feedbackLowPassCoefficient = lowPassCoefficient(sampleRate, feedbackLowPassHz);
     const auto monoBassCoefficient = lowPassCoefficient(sampleRate, 180.0f);
-    const auto duckAttack = coefficientForTime(sampleRate, 0.006f);
-    const auto duckRelease = coefficientForTime(sampleRate, 0.28f);
+    const auto duckAttack = coefficientForTime(sampleRate, 0.012f);
+    const auto duckRelease = coefficientForTime(sampleRate, 0.42f);
     const auto attackTimeSeconds = 0.004f + attack * 1.2f + modeSettings.attackBias;
     const auto attackCoefficient = coefficientForTime(sampleRate, attackTimeSeconds);
     const auto attackReleaseCoefficient = coefficientForTime(sampleRate, 1.4f);
     const auto modRate = juce::jlimit(0.05f, 5.0f, getParameterValue(parameters.reverbModRate, 0.25f));
-    const auto modDepth = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbModDepth, 0.1f)) * colorSettings.modulation;
-    const auto sizeScale = modeSettings.sizeScale * juce::jmap(size, 0.0f, 1.0f, 0.55f, 1.55f);
+    const auto modDepth = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.reverbModDepth, 0.08f)) * colorSettings.modulation;
+    const auto sizeScale = modeSettings.sizeScale * juce::jmap(size, 0.0f, 1.0f, 0.62f, 1.72f);
     const auto inputToTank = freezeEnabled ? 0.0f : 1.0f;
     const auto colorDrive = colorSettings.drive;
     const auto colorLoFi = colorSettings.loFi;
@@ -159,7 +159,7 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
     predelaySamples.setTargetValue(juce::jlimit(1.0f, static_cast<float>(predelayBufferSize - 4),
                                                 static_cast<float>(sampleRate * getPredelayMs() * 0.001)));
 
-    const std::array<float, tankLineCount> baseDelayMs { 29.7f, 37.1f, 41.9f, 53.3f, 61.1f, 71.9f, 83.7f, 97.3f };
+    const std::array<float, tankLineCount> baseDelayMs { 31.1f, 43.7f, 59.3f, 73.1f, 89.9f, 107.3f, 127.7f, 149.3f };
     const std::array<float, tankLineCount> phaseOffsets {
         0.0f,
         0.73f,
@@ -196,18 +196,27 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
         const auto currentPredelaySamples = predelaySamples.getNextValue();
         const auto preLeft = readPredelaySample(0, currentPredelaySamples);
         const auto preRight = readPredelaySample(1, currentPredelaySamples);
-        const auto tapScaleSamples = static_cast<float>(sampleRate * 0.001) * juce::jmap(size, 0.0f, 1.0f, 0.7f, 1.35f);
+        const auto tapScaleSamples = static_cast<float>(sampleRate * 0.001) * juce::jmap(size, 0.0f, 1.0f, 0.75f, 1.55f);
 
-        const auto earlyLeft = (preLeft * 0.45f
-                                + readPredelaySample(0, currentPredelaySamples + 11.0f * tapScaleSamples) * 0.22f
-                                + readPredelaySample(1, currentPredelaySamples + 23.0f * tapScaleSamples) * 0.17f
-                                - readPredelaySample(0, currentPredelaySamples + 37.0f * tapScaleSamples) * 0.12f)
-                             * (0.55f + diffEarly * 0.45f);
-        const auto earlyRight = (preRight * 0.45f
-                                 + readPredelaySample(1, currentPredelaySamples + 13.0f * tapScaleSamples) * 0.22f
-                                 + readPredelaySample(0, currentPredelaySamples + 29.0f * tapScaleSamples) * 0.17f
-                                 - readPredelaySample(1, currentPredelaySamples + 43.0f * tapScaleSamples) * 0.12f)
-                              * (0.55f + diffEarly * 0.45f);
+        auto earlyLeft = preLeft * 0.30f
+                       + readPredelaySample(0, currentPredelaySamples + 8.0f * tapScaleSamples) * 0.28f
+                       - readPredelaySample(1, currentPredelaySamples + 17.0f * tapScaleSamples) * 0.19f
+                       + readPredelaySample(0, currentPredelaySamples + 29.0f * tapScaleSamples) * 0.16f
+                       + readPredelaySample(1, currentPredelaySamples + 46.0f * tapScaleSamples) * 0.11f
+                       - readPredelaySample(0, currentPredelaySamples + 71.0f * tapScaleSamples) * 0.07f;
+        auto earlyRight = preRight * 0.30f
+                        + readPredelaySample(1, currentPredelaySamples + 10.0f * tapScaleSamples) * 0.28f
+                        - readPredelaySample(0, currentPredelaySamples + 21.0f * tapScaleSamples) * 0.19f
+                        + readPredelaySample(1, currentPredelaySamples + 34.0f * tapScaleSamples) * 0.16f
+                        + readPredelaySample(0, currentPredelaySamples + 53.0f * tapScaleSamples) * 0.11f
+                        - readPredelaySample(1, currentPredelaySamples + 83.0f * tapScaleSamples) * 0.07f;
+
+        const auto earlyFocus = 0.72f + (1.0f - diffEarly) * 0.26f;
+        const auto earlySpread = juce::jlimit(0.25f, 1.25f, (0.64f + diffEarly * 0.54f + size * 0.18f) * modeSettings.widthScale);
+        const auto earlyMid = (earlyLeft + earlyRight) * 0.5f;
+        const auto earlySide = (earlyLeft - earlyRight) * 0.5f * earlySpread;
+        earlyLeft = (earlyMid + earlySide) * earlyFocus;
+        earlyRight = (earlyMid - earlySide) * earlyFocus;
 
         std::array<float, tankLineCount> tankOut {};
         auto tankSum = 0.0f;
@@ -221,8 +230,13 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
             tankSum += tankOut[static_cast<size_t>(line)];
         }
 
-        const auto lateLeft = (tankOut[0] - tankOut[2] + tankOut[4] + tankOut[6] * 0.7f) * 0.32f;
-        const auto lateRight = (tankOut[1] - tankOut[3] + tankOut[5] + tankOut[7] * 0.7f) * 0.32f;
+        const auto lateFocus = 0.70f + diffLate * 0.26f;
+        const auto lateLeft = (tankOut[0] * 0.82f - tankOut[2] * 0.58f + tankOut[4] * 0.74f
+                               - tankOut[5] * 0.30f + tankOut[6] * 0.42f)
+                            * 0.27f * modeSettings.tailLevel * lateFocus;
+        const auto lateRight = (tankOut[1] * 0.82f - tankOut[3] * 0.58f + tankOut[5] * 0.74f
+                                - tankOut[4] * 0.30f + tankOut[7] * 0.42f)
+                             * 0.27f * modeSettings.tailLevel * lateFocus;
         const auto monoPre = (preLeft + preRight) * 0.5f;
         const auto inputEnergy = juce::jmax(std::abs(dryLeft), std::abs(dryRight));
         const auto duckCoefficient = inputEnergy > duckEnvelope ? duckAttack : duckRelease;
@@ -237,8 +251,8 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
         if (mode == Mode::reverse)
             attackGain = std::pow(attackEnvelope, 1.8f);
 
-        auto wetLeft = (earlyLeft * earlyAmount + lateLeft * lateAmount) * attackGain;
-        auto wetRight = (earlyRight * earlyAmount + lateRight * lateAmount) * attackGain;
+        auto wetLeft = (earlyLeft * earlyAmount * 0.95f + lateLeft * lateAmount) * attackGain;
+        auto wetRight = (earlyRight * earlyAmount * 0.95f + lateRight * lateAmount) * attackGain;
 
         wetLeft = processWetFilters(applyColor(wetLeft, colorDrive, colorLoFi), 0, wetHighPassAlpha, wetLowPassCoefficient);
         wetRight = processWetFilters(applyColor(wetRight, colorDrive, colorLoFi), 1, wetHighPassAlpha, wetLowPassCoefficient);
@@ -253,7 +267,7 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
             wetRight = (wetRight - monoBassLowPass[1]) + monoLow;
         }
 
-        const auto currentWidth = width.getNextValue();
+        const auto currentWidth = juce::jlimit(0.0f, 1.45f, width.getNextValue() * (0.65f + modeSettings.widthScale * 0.65f));
         if (bufferChannels > 1)
         {
             const auto wetMid = (wetLeft + wetRight) * 0.5f;
@@ -262,24 +276,27 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
             wetRight = wetMid - wetSide;
         }
 
-        const auto duckDb = juce::jlimit(0.0f, 18.0f,
-                                        ducking.getNextValue() * 18.0f
-                                        * juce::jlimit(0.0f, 1.0f, (juce::Decibels::gainToDecibels(duckEnvelope, -90.0f) + 42.0f) / 42.0f));
+        const auto duckNormalised = juce::jlimit(0.0f, 1.0f, (juce::Decibels::gainToDecibels(duckEnvelope, -90.0f) + 44.0f) / 44.0f);
+        const auto duckDb = juce::jlimit(0.0f, 14.0f,
+                                         ducking.getNextValue() * 14.0f * std::pow(duckNormalised, 1.25f));
         const auto duckGain = juce::Decibels::decibelsToGain(-duckDb);
         const auto currentMix = mix.getNextValue();
+        const auto dryGain = 1.0f - currentMix * 0.08f;
+        const auto wetOutputGain = modeSettings.wetTrim * colorSettings.wetGain * (0.82f + earlyAmount * 0.07f + lateAmount * 0.08f);
 
         auto* leftSamples = buffer.getWritePointer(0);
-        leftSamples[sample] = sanitizeSample(dryLeft * (1.0f - currentMix) + wetLeft * duckGain * currentMix);
+        leftSamples[sample] = sanitizeSample(dryLeft * dryGain + wetLeft * duckGain * currentMix * wetOutputGain);
 
         if (bufferChannels > 1)
         {
             auto* rightSamples = buffer.getWritePointer(1);
-            rightSamples[sample] = sanitizeSample(dryRight * (1.0f - currentMix) + wetRight * duckGain * currentMix);
+            rightSamples[sample] = sanitizeSample(dryRight * dryGain + wetRight * duckGain * currentMix * wetOutputGain);
         }
 
-        const auto tankInputLeft = (preLeft * 0.42f + earlyLeft * 0.20f) * inputToTank;
-        const auto tankInputRight = (preRight * 0.42f + earlyRight * 0.20f) * inputToTank;
-        const auto diffusionBlend = modeSettings.diffusion * (0.45f + diffLate * 0.55f);
+        const auto tankInputScale = inputToTank * (0.22f + size * 0.08f);
+        const auto tankInputLeft = (preLeft * 0.62f + earlyLeft * 0.38f) * tankInputScale;
+        const auto tankInputRight = (preRight * 0.62f + earlyRight * 0.38f) * tankInputScale;
+        const auto diffusionBlend = juce::jlimit(0.40f, 0.96f, modeSettings.diffusion * (0.66f + diffLate * 0.34f));
 
         for (auto line = 0; line < tankLineCount; ++line)
         {
@@ -287,11 +304,13 @@ void ReverbModule::process(juce::AudioBuffer<float>& buffer)
             const auto nextA = tankOut[static_cast<size_t>((line + 1) % tankLineCount)];
             const auto nextB = tankOut[static_cast<size_t>((line + 3) % tankLineCount)];
             const auto nextC = tankOut[static_cast<size_t>((line + 5) % tankLineCount)];
-            const auto matrixFeedback = (nextA * 0.58f - nextB * 0.34f + nextC * 0.24f + tankSum * 0.025f)
+            const auto householder = tankSum * 0.25f - tankOut[index];
+            const auto crossMix = nextA * 0.32f - nextB * 0.20f + nextC * 0.12f;
+            const auto matrixFeedback = (householder * (0.82f + diffLate * 0.10f) + crossMix * (0.10f + diffLate * 0.06f))
                                       * diffusionBlend
                                       * tankFeedback[index];
-            const auto stereoInjection = (line & 1) == 0 ? tankInputLeft : tankInputRight;
-            const auto monoInjection = monoPre * 0.09f * inputToTank;
+            const auto stereoInjection = ((line & 1) == 0 ? tankInputLeft : tankInputRight) * (((line + 2) & 4) == 0 ? 1.0f : -1.0f);
+            const auto monoInjection = monoPre * 0.035f * tankInputScale * (((line + 1) & 2) == 0 ? 1.0f : -1.0f);
             auto writeSample = processFeedbackFilters(stereoInjection + monoInjection + matrixFeedback,
                                                        line,
                                                        feedbackHighPassAlpha,
@@ -331,7 +350,7 @@ int ReverbModule::getChoiceIndex(std::atomic<float>* parameter, int fallback, in
 
 ReverbModule::Mode ReverbModule::getMode() const noexcept
 {
-    switch (getChoiceIndex(parameters.reverbMode, 2, 8))
+    switch (getChoiceIndex(parameters.reverbMode, 1, 8))
     {
         case 0: return Mode::smallRoom;
         case 1: return Mode::mediumRoom;
@@ -362,16 +381,16 @@ ReverbModule::ModeSettings ReverbModule::getModeSettings(Mode mode) const noexce
 {
     switch (mode)
     {
-        case Mode::smallRoom: return { 0.55f, 0.58f, 1.25f, 0.58f, 0.48f, 0.95f, 0.0f };
-        case Mode::mediumRoom: return { 0.78f, 0.82f, 1.05f, 0.82f, 0.58f, 1.0f, 0.0f };
-        case Mode::concertHall: return { 1.18f, 1.28f, 0.78f, 1.16f, 0.72f, 1.05f, 0.02f };
-        case Mode::plate: return { 0.84f, 0.95f, 0.72f, 1.24f, 0.92f, 1.18f, 0.0f };
-        case Mode::chamber: return { 0.68f, 0.76f, 1.15f, 0.72f, 0.72f, 0.88f, 0.0f };
-        case Mode::cathedral: return { 1.45f, 1.62f, 0.58f, 1.30f, 0.82f, 0.92f, 0.05f };
-        case Mode::ambience: return { 0.38f, 0.35f, 1.55f, 0.34f, 0.42f, 1.02f, 0.0f };
-        case Mode::reverse: return { 1.00f, 1.10f, 0.40f, 1.05f, 0.76f, 1.08f, 0.25f };
+        case Mode::smallRoom: return { 0.55f, 0.55f, 1.35f, 0.55f, 0.54f, 1.08f, 0.0f, 0.72f, 0.84f, 0.82f };
+        case Mode::mediumRoom: return { 0.82f, 0.86f, 1.12f, 0.86f, 0.72f, 1.05f, 0.0f, 0.92f, 0.86f, 1.00f };
+        case Mode::concertHall: return { 1.32f, 1.36f, 0.78f, 1.15f, 0.88f, 1.00f, 0.02f, 1.08f, 0.86f, 1.13f };
+        case Mode::plate: return { 0.78f, 0.92f, 0.82f, 1.24f, 0.92f, 1.28f, 0.0f, 1.14f, 0.90f, 1.10f };
+        case Mode::chamber: return { 0.72f, 0.82f, 1.05f, 0.95f, 0.82f, 0.96f, 0.0f, 1.00f, 0.86f, 0.98f };
+        case Mode::cathedral: return { 1.58f, 1.78f, 0.60f, 1.26f, 0.90f, 0.92f, 0.05f, 1.18f, 0.82f, 1.22f };
+        case Mode::ambience: return { 0.42f, 0.38f, 1.45f, 0.32f, 0.48f, 1.08f, 0.0f, 0.55f, 0.80f, 0.90f };
+        case Mode::reverse: return { 1.02f, 1.08f, 0.45f, 1.08f, 0.80f, 1.12f, 0.28f, 0.98f, 0.86f, 1.08f };
         case Mode::largeHall:
-        default: return { 1.00f, 1.05f, 0.88f, 1.02f, 0.68f, 1.0f, 0.01f };
+        default: return { 1.14f, 1.18f, 0.90f, 1.05f, 0.78f, 1.02f, 0.01f, 1.04f, 0.88f, 1.08f };
     }
 }
 
@@ -379,13 +398,13 @@ ReverbModule::ColorSettings ReverbModule::getColorSettings(Color color) const no
 {
     switch (color)
     {
-        case Color::bright80s: return { 1.28f, 0.035f, 0.0f, 1.15f };
-        case Color::dark70s: return { 0.62f, 0.06f, 0.0f, 0.75f };
-        case Color::loFi: return { 0.55f, 0.08f, 0.46f, 0.70f };
-        case Color::tape: return { 0.78f, 0.16f, 0.16f, 0.85f };
-        case Color::digitalVintage: return { 0.88f, 0.035f, 0.28f, 1.30f };
+        case Color::bright80s: return { 1.45f, 0.025f, 0.0f, 1.12f, 1.08f, 1.08f };
+        case Color::dark70s: return { 0.55f, 0.05f, 0.0f, 0.72f, 0.92f, 0.78f };
+        case Color::loFi: return { 0.60f, 0.09f, 0.52f, 0.62f, 0.88f, 0.72f };
+        case Color::tape: return { 0.78f, 0.14f, 0.18f, 0.80f, 0.96f, 0.84f };
+        case Color::digitalVintage: return { 1.08f, 0.02f, 0.24f, 1.25f, 1.02f, 0.95f };
         case Color::modernClean:
-        default: return { 1.0f, 0.0f, 0.0f, 1.0f };
+        default: return { 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f };
     }
 }
 
@@ -397,7 +416,7 @@ float ReverbModule::getPredelayMs() const noexcept
         return juce::jlimit(0.0f, 250.0f, quarterNoteMs * 0.25f);
     }
 
-    return juce::jlimit(0.0f, 250.0f, getParameterValue(parameters.reverbPredelayMs, 20.0f));
+    return juce::jlimit(0.0f, 250.0f, getParameterValue(parameters.reverbPredelayMs, 14.0f));
 }
 
 float ReverbModule::readPredelaySample(int channel, float delaySamples) const noexcept

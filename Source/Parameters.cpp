@@ -273,22 +273,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout Parameters::createParameterL
 
     // Reverb parameters: active DSP in ReverbModule. reverbSend is kept as a legacy macro ID.
     params.push_back(makePercentParameter(reverbMix, "Reverb Mix", 0.0f));
-    params.push_back(makeMillisecondsParameter(reverbPredelayMs, "Reverb Predelay", 0.0f, 250.0f, 20.0f, 45.0f));
-    params.push_back(makeSecondsParameter(reverbDecaySec, "Reverb Decay", 0.3f, 14.0f, 2.4f, 2.5f));
-    params.push_back(makePercentParameter(reverbSize, "Reverb Size", 0.55f));
+    params.push_back(makeMillisecondsParameter(reverbPredelayMs, "Reverb Predelay", 0.0f, 250.0f, 14.0f, 35.0f));
+    params.push_back(makeSecondsParameter(reverbDecaySec, "Reverb Decay", 0.3f, 14.0f, 1.85f, 2.5f));
+    params.push_back(makePercentParameter(reverbSize, "Reverb Size", 0.50f));
     params.push_back(makePercentParameter(reverbAttack, "Reverb Attack", 0.0f));
-    params.push_back(makePercentParameter(reverbEarly, "Reverb Early", 0.35f));
-    params.push_back(makePercentParameter(reverbLate, "Reverb Late", 0.75f));
-    params.push_back(makeFrequencyParameter(reverbLowCutHz, "Reverb Low Cut", 20.0f, 1000.0f, 120.0f, 140.0f));
-    params.push_back(makeFrequencyParameter(reverbHighCutHz, "Reverb High Cut", 1000.0f, 20000.0f, 12000.0f, 7000.0f));
-    params.push_back(makeFrequencyParameter(reverbLowDampHz, "Reverb Low Damp", 40.0f, 1000.0f, 220.0f, 220.0f));
-    params.push_back(makeGainParameter(reverbHighDampDb, "Reverb High Damp", -24.0f, 0.0f, -6.0f));
-    params.push_back(makePercentParameter(reverbDiffusionEarly, "Reverb Early Diffusion", 0.45f));
-    params.push_back(makePercentParameter(reverbDiffusionLate, "Reverb Late Diffusion", 0.65f));
+    params.push_back(makePercentParameter(reverbEarly, "Reverb Early", 0.55f));
+    params.push_back(makePercentParameter(reverbLate, "Reverb Late", 0.68f));
+    params.push_back(makeFrequencyParameter(reverbLowCutHz, "Reverb Low Cut", 20.0f, 1000.0f, 160.0f, 180.0f));
+    params.push_back(makeFrequencyParameter(reverbHighCutHz, "Reverb High Cut", 1000.0f, 20000.0f, 14000.0f, 8000.0f));
+    params.push_back(makeFrequencyParameter(reverbLowDampHz, "Reverb Low Damp", 40.0f, 1000.0f, 320.0f, 260.0f));
+    params.push_back(makeGainParameter(reverbHighDampDb, "Reverb High Damp", -24.0f, 0.0f, -4.5f));
+    params.push_back(makePercentParameter(reverbDiffusionEarly, "Reverb Early Diffusion", 0.38f));
+    params.push_back(makePercentParameter(reverbDiffusionLate, "Reverb Late Diffusion", 0.72f));
     params.push_back(makeRateParameter(reverbModRate, "Reverb Mod Rate", 0.05f, 5.0f, 0.25f, 0.6f));
-    params.push_back(makePercentParameter(reverbModDepth, "Reverb Mod Depth", 0.10f));
+    params.push_back(makePercentParameter(reverbModDepth, "Reverb Mod Depth", 0.08f));
     params.push_back(makePercentParameter(reverbWidth, "Reverb Width", 1.0f));
-    params.push_back(makeChoiceParameter(reverbMode, "Reverb Mode", { "SmallRoom", "MediumRoom", "LargeHall", "ConcertHall", "Plate", "Chamber", "Cathedral", "Ambience", "Reverse" }, 2));
+    params.push_back(makeChoiceParameter(reverbMode, "Reverb Mode", { "SmallRoom", "MediumRoom", "LargeHall", "ConcertHall", "Plate", "Chamber", "Cathedral", "Ambience", "Reverse" }, 1));
     params.push_back(makeChoiceParameter(reverbColor, "Reverb Color", { "ModernClean", "Bright80s", "Dark70s", "LoFi", "Tape", "DigitalVintage" }, 0));
     params.push_back(makeBoolParameter(reverbFreeze, "Reverb Freeze", false));
     params.push_back(makePercentParameter(reverbDucking, "Reverb Ducking", 0.0f));

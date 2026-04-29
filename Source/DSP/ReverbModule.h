@@ -73,6 +73,9 @@ private:
         float diffusion = 0.65f;
         float brightness = 1.0f;
         float attackBias = 0.0f;
+        float tailLevel = 1.0f;
+        float wetTrim = 0.82f;
+        float widthScale = 1.0f;
     };
 
     struct ColorSettings
@@ -81,6 +84,8 @@ private:
         float drive = 0.0f;
         float loFi = 0.0f;
         float modulation = 1.0f;
+        float wetGain = 1.0f;
+        float damping = 1.0f;
     };
 
     static constexpr auto internalChannels = 2;
