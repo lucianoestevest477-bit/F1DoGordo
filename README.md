@@ -6,6 +6,14 @@ Fabricante: **Gordo Audio**
 Projeto: **F1DoGordo**  
 Plugin: **F1 do Gordo**
 
+## Documentacao
+
+A documentacao principal do projeto agora fica em formato Obsidian Vault:
+
+- [Docs/00-Home.md](Docs/00-Home.md)
+
+Abra a pasta do projeto no Obsidian ou navegue pelos arquivos Markdown em `Docs/`.
+
 ## Estado atual
 
 - Base compilavel em C++20 com JUCE + CMake.
