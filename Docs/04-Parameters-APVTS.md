@@ -11,6 +11,8 @@ IDs de parametros devem permanecer estaveis. Eles sao o contrato com:
 - Presets futuros.
 - Mapeamento para hardware/controladores.
 
+Nao renomear IDs existentes apenas para mudar label visual. Exemplo atual: `airDrive` continua sendo o ID estavel, enquanto a UI mostra INTENSITY.
+
 ## Globais
 
 - `inputGainDb`
@@ -135,3 +137,10 @@ Restricao permanente nesta linha de design: Delay nao deve receber parametros `d
 
 `reverbSend` permanece como macro legado, mas a UI global SPACE esta ligada ao `reverbMix` ativo.
 
+## Conferencia de consistencia
+
+- O fluxo atual em `PluginProcessor` chama os modulos em ordem: Channel, Compressor, Air, Delay e Reverb. Ver [[03-Architecture]].
+- Os defaults neutros estao documentados em [[decisions/0003-Factory-Default-Neutral]].
+- O Delay nao possui IDs `dryWet`, `output` ou `analog`; apenas existem outros parametros globais/de outros modulos com "output" no nome, como `outputGainDb`, `compOutputDb` e `airOutputDb`.
+- `delaySend` e o controle de quantidade do Delay. Ver [[decisions/0002-Delay-No-DryWet-Output-Analog]].
+- SPACE na pagina GLOBAL controla `reverbMix`; `reverbSend` permanece no APVTS por compatibilidade/legado.

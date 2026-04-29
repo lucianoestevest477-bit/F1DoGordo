@@ -21,6 +21,7 @@
 - `f67ff11` Push UI toward literal interactive F1 wheel
 - `dfeb0bf` Make UI resemble full interactive F1 wheel
 - `63e816e` Make cockpit UI dark oval and neon premium
+- `7f0a6b9` Add Obsidian documentation vault
 
 ## Marcos principais
 
@@ -34,4 +35,4 @@
 - Reverb: algoritmo funcional, porem marcado para revisao futura.
 - Factory default neutral: instancia nova deve abrir em unity/pass-through.
 - UI cockpit fases 8 a 8.4: evolucao visual para volante F1 interativo escuro/premium.
-
+- Documentation vault: organizacao Obsidian Markdown em `Docs/`, com arquitetura, APVTS, modulos, UI, hardware mapping, roadmap, changelog e ADRs.

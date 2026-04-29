@@ -34,6 +34,7 @@ Estes devem permanecer faceis de automatizar e mapear:
 - Um botao fisico = uma funcao clara.
 - Evitar submenus para funcoes essenciais.
 - Evitar controles decorativos que parecam funcionais.
+- Labels de UI podem mudar, mas IDs APVTS nao devem mudar. Ver [[04-Parameters-APVTS]].
 
 ## Possivel mapeamento inicial
 
@@ -54,10 +55,11 @@ Estes devem permanecer faceis de automatizar e mapear:
 | Button 5 | `delayEnabled` |
 | Button 6 | `reverbEnabled` |
 
+Nota atual: o macro SPACE da UI global controla `reverbMix`. `reverbSend` continua no APVTS como ID legado, mas nao deve ser usado para criar confusao de mapeamento.
+
 ## Pendencias futuras
 
 - Definir estrategia MIDI Learn ou depender de automacao do host.
 - Criar presets de mapeamento para FL Studio.
 - Testar com hardware real.
 - Documentar ranges recomendados para performance ao vivo.
-

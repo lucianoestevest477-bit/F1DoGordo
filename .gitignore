@@ -1,6 +1,7 @@
 build/
 .vs/
 out/
+.obsidian/
 CMakeFiles/
 CMakeCache.txt
 

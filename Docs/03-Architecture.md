@@ -23,6 +23,13 @@ Input -> Channel -> FET Compressor -> Air Exciter -> Delay -> Reverb -> Output
 
 Este fluxo e fixo e deve ser preservado ate existir uma decisao explicita para muda-lo.
 
+Notas relacionadas:
+
+- Parametros e defaults: [[04-Parameters-APVTS]]
+- Modulos DSP: [[05-DSP-Modules]]
+- Delay sem dry/wet tradicional: [[decisions/0002-Delay-No-DryWet-Output-Analog]]
+- Factory default neutro: [[decisions/0003-Factory-Default-Neutral]]
+
 ## PluginProcessor
 
 `PluginProcessor` e responsavel por:
@@ -72,3 +79,4 @@ Componentes principais:
 - `GordoLED`: LED de status.
 - `GordoMeter`: medidores IN/OUT/GR.
 
+O estado visual atual busca parecer um volante F1 interativo, mas sem alterar o contrato APVTS nem criar controles funcionais sem parametro real. Ver [[06-UI-Cockpit-Design]] e [[07-Hardware-Mapping-Plan]].

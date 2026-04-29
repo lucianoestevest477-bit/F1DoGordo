@@ -32,7 +32,7 @@ Adicionar ambiencia algorithmic stereo com predelay, early/late, damping, filtro
 
 ## Estado atual
 
-Funcional, mas marcado para revisao futura de qualidade/voicing.
+Funcional/prototipo. O usuario nao gostou do resultado sonoro atual, entao este modulo nao deve ser considerado aprovado para release final.
 
 ## Testes no FL
 
@@ -48,8 +48,13 @@ Funcional, mas marcado para revisao futura de qualidade/voicing.
 
 ## Pendencias
 
-- Criar Reverb V2.
+- Criar Reverb V2 ou refatorar profundamente o voicing atual.
 - Priorizar som digital simples, claro e musical.
 - Considerar `juce::Reverb` ou `juce::dsp::Reverb` como base.
 - Preservar IDs existentes se possivel.
 
+## Links relacionados
+
+- [[../08-Reverb-Issues-And-Future-Fix]]
+- [[../04-Parameters-APVTS]]
+- [[../09-Roadmap]]

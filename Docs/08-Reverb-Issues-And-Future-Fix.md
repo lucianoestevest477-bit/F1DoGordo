@@ -2,7 +2,9 @@
 
 ## Estado atual
 
-O ReverbModule esta funcional e possui parametros completos, mas o usuario indicou que o resultado sonoro atual ainda nao esta no nivel desejado.
+O ReverbModule esta funcional e possui parametros completos, mas o usuario indicou explicitamente que nao gostou do resultado sonoro atual.
+
+Conclusao: tratar o Reverb atual como **funcional/prototipo**, nao como modulo aprovado para release final.
 
 ## Problema percebido
 
@@ -14,7 +16,7 @@ O ReverbModule esta funcional e possui parametros completos, mas o usuario indic
 
 ## Decisao temporaria
 
-Nao mexer no Reverb nesta fase de documentacao.
+Nao mexer no Reverb nesta fase de documentacao. A correcao deve ser planejada como fase propria, preferencialmente [[09-Roadmap|Fase 12: Reverb V2]].
 
 ## Ideia futura: Reverb V2
 
@@ -29,6 +31,8 @@ Criar uma versao V2 simples e estavel, possivelmente usando:
 - Freeze controlado.
 - Width e mono bass.
 
+Preservar IDs APVTS existentes sempre que possivel. Se algum parametro novo for inevitavel, documentar antes em [[04-Parameters-APVTS]] e criar uma ADR.
+
 ## Objetivo sonoro da V2
 
 - Digital limpo.
@@ -37,3 +41,9 @@ Criar uma versao V2 simples e estavel, possivelmente usando:
 - Mix 15% a 30% ja deve soar util.
 - OFF e MIX 0% devem permanecer neutros.
 
+## Links relacionados
+
+- [[modules/Reverb]]
+- [[05-DSP-Modules]]
+- [[04-Parameters-APVTS]]
+- [[decisions/0003-Factory-Default-Neutral]]

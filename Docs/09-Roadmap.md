@@ -2,8 +2,11 @@
 
 ## Fase 9: Documentacao
 
+Status: concluida inicialmente em `7f0a6b9 Add Obsidian documentation vault`; este vault deve ser mantido vivo a cada fase.
+
 - Criar Obsidian vault em `Docs/`.
 - Documentar arquitetura, parametros, modulos, UI, hardware mapping e decisoes.
+- Revisar documentacao sempre que parametros, fluxo, UI ou comportamento mudarem.
 
 ## Fase 10: Hardware Mapping
 
@@ -20,8 +23,10 @@
 ## Fase 12: Reverb V2
 
 - Revisar ReverbModule.
+- Corrigir o ponto principal: o usuario nao gostou do Reverb atual.
 - Buscar um reverb digital simples, claro e estavel.
 - Preservar IDs existentes sempre que possivel.
+- Documentar qualquer mudanca em [[08-Reverb-Issues-And-Future-Fix]].
 
 ## Fase 13: Polimento final UI
 
@@ -36,4 +41,3 @@
 - README de instalacao.
 - Versao e changelog de release.
 - Testes finais no FL Studio.
-
