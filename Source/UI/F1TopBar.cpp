@@ -28,26 +28,46 @@ void F1TopBar::setCpuText(const juce::String& text)
 void F1TopBar::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
-    g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.18f), bounds.getCentreX(), bounds.getY(),
-                                           juce::Colour(0xff07090c), bounds.getCentreX(), bounds.getBottom(), false));
-    g.fillRect(bounds);
+    auto inset = bounds.reduced(18.0f, 8.0f);
+    juce::Path bridge;
+    bridge.startNewSubPath(inset.getX() + 58.0f, inset.getY() + 2.0f);
+    bridge.lineTo(inset.getRight() - 58.0f, inset.getY() + 2.0f);
+    bridge.lineTo(inset.getRight() - 18.0f, inset.getCentreY());
+    bridge.lineTo(inset.getRight() - 74.0f, inset.getBottom() - 3.0f);
+    bridge.lineTo(inset.getX() + 74.0f, inset.getBottom() - 3.0f);
+    bridge.lineTo(inset.getX() + 18.0f, inset.getCentreY());
+    bridge.closeSubPath();
 
-    auto inset = bounds.reduced(14.0f, 10.0f);
+    g.setColour(juce::Colours::black.withAlpha(0.48f));
+    g.fillPath(bridge, juce::AffineTransform::translation(0.0f, 5.0f));
     g.setColour(juce::Colour(0xff050607));
-    g.fillRoundedRectangle(inset, 10.0f);
+    g.fillPath(bridge);
     g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.14f), inset.getX(), inset.getY(),
                                            F1Theme::panel().darker(0.7f), inset.getX(), inset.getBottom(), false));
-    g.fillRoundedRectangle(inset.reduced(2.0f), 8.0f);
+    g.fillPath(bridge, juce::AffineTransform::scale(0.985f, 0.88f, inset.getCentreX(), inset.getCentreY()));
 
     g.setColour(F1Theme::red().withAlpha(0.85f));
     g.fillRoundedRectangle(juce::Rectangle<float>(inset.getX() + 8.0f, inset.getBottom() - 5.0f,
                                                   inset.getWidth() - 16.0f, 2.0f),
                            1.0f);
+    g.setColour(F1Theme::cyan().withAlpha(0.20f));
+    g.strokePath(bridge, juce::PathStrokeType(1.4f));
 
     for (auto x = inset.getX() + 330.0f; x < inset.getRight() - 80.0f; x += 26.0f)
     {
         g.setColour(juce::Colour(0x1affffff));
         g.drawVerticalLine(juce::roundToInt(x), inset.getY() + 7.0f, inset.getBottom() - 7.0f);
+    }
+
+    for (auto screwX : { inset.getX() + 48.0f, inset.getRight() - 48.0f })
+    {
+        auto screw = juce::Rectangle<float>(12.0f, 12.0f).withCentre(juce::Point<float>(screwX, inset.getCentreY()));
+        g.setColour(juce::Colour(0xff030405));
+        g.fillEllipse(screw.expanded(2.0f));
+        g.setColour(F1Theme::metal().brighter(0.35f));
+        g.fillEllipse(screw);
+        g.setColour(juce::Colours::black.withAlpha(0.82f));
+        g.drawLine(screw.getX() + 3.0f, screw.getCentreY(), screw.getRight() - 3.0f, screw.getCentreY(), 1.4f);
     }
 
     g.setColour(F1Theme::text());
