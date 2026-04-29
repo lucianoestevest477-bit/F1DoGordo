@@ -11,6 +11,8 @@ namespace F1Theme
     juce::Colour amber();
     juce::Colour green();
     juce::Colour blue();
+    juce::Colour cyan();
+    juce::Colour violet();
     juce::Colour text();
     juce::Colour mutedText();
 

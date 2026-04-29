@@ -1,6 +1,63 @@
 #include "F1Dashboard.h"
 #include "F1Theme.h"
 
+#include <cmath>
+
+namespace
+{
+    void paintScrew(juce::Graphics& g, juce::Point<float> centre, float radius)
+    {
+        auto area = juce::Rectangle<float>(radius * 2.0f, radius * 2.0f).withCentre(centre);
+        g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.35f), centre.x, area.getY(),
+                                               F1Theme::metal().darker(0.65f), centre.x, area.getBottom(), false));
+        g.fillEllipse(area);
+        g.setColour(juce::Colour(0xaa000000));
+        g.drawEllipse(area, 1.0f);
+        g.drawLine(centre.x - radius * 0.52f, centre.y, centre.x + radius * 0.52f, centre.y, 1.4f);
+    }
+
+    void paintGripTexture(juce::Graphics& g, juce::Path grip)
+    {
+        g.setColour(juce::Colour(0xff050607));
+        g.fillPath(grip);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff1a1d22), 0.0f, grip.getBounds().getY(),
+                                               juce::Colour(0xff050607), 0.0f, grip.getBounds().getBottom(), false));
+        g.fillPath(grip);
+        g.setColour(juce::Colour(0x22ffffff));
+
+        const auto bounds = grip.getBounds();
+        for (auto y = bounds.getY() + 22.0f; y < bounds.getBottom() - 18.0f; y += 18.0f)
+            g.drawLine(bounds.getX() + 20.0f, y, bounds.getRight() - 20.0f, y + 10.0f, 1.2f);
+
+        g.setColour(F1Theme::red().withAlpha(0.50f));
+        g.strokePath(grip, juce::PathStrokeType(2.0f));
+    }
+
+    juce::Path makeLeftGrip(juce::Rectangle<float> wheel)
+    {
+        juce::Path path;
+        const auto left = wheel.getX() + 8.0f;
+        const auto top = wheel.getY() + wheel.getHeight() * 0.12f;
+        const auto bottom = wheel.getBottom() - wheel.getHeight() * 0.10f;
+        const auto inner = wheel.getX() + wheel.getWidth() * 0.19f;
+        const auto outer = wheel.getX() + wheel.getWidth() * 0.035f;
+
+        path.startNewSubPath(inner, top + 16.0f);
+        path.cubicTo(outer, top - 8.0f, left, wheel.getCentreY() - 92.0f, left + 6.0f, wheel.getCentreY());
+        path.cubicTo(left, wheel.getCentreY() + 94.0f, outer, bottom + 8.0f, inner, bottom - 20.0f);
+        path.cubicTo(inner + 48.0f, bottom - 64.0f, inner + 48.0f, top + 66.0f, inner, top + 16.0f);
+        path.closeSubPath();
+        return path;
+    }
+
+    juce::Path makeRightGrip(juce::Rectangle<float> wheel)
+    {
+        auto path = makeLeftGrip(wheel);
+        path.applyTransform(juce::AffineTransform::scale(-1.0f, 1.0f, wheel.getCentreX(), wheel.getCentreY()));
+        return path;
+    }
+}
+
 F1Dashboard::F1Dashboard()
 {
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
@@ -30,6 +87,7 @@ F1Dashboard::F1Dashboard()
                         &reverbDucking })
         addAndMakeVisible(*knob);
 
+    // These controls are designed to be host-automation/controller-mapping friendly.
     for (auto* button : { &globalBypass, &channelEnabled, &compEnabled, &airEnabled, &delayEnabled, &reverbEnabled })
         addAndMakeVisible(*button);
 
@@ -64,7 +122,7 @@ F1Dashboard::F1Dashboard()
     moduleLeds[1].setLedColour(F1Theme::red());
     moduleLeds[2].setLedColour(F1Theme::blue());
     moduleLeds[3].setLedColour(F1Theme::amber());
-    moduleLeds[4].setLedColour(F1Theme::green().brighter(0.2f));
+    moduleLeds[4].setLedColour(F1Theme::cyan());
 
     for (auto& led : moduleLeds)
         addAndMakeVisible(led);
@@ -101,28 +159,61 @@ bool F1Dashboard::isCompressorPage() const noexcept
 void F1Dashboard::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
-    auto cockpit = bounds.reduced(70, 38).toFloat();
+    auto wheel = bounds.reduced(28, 24).toFloat();
+    wheel.removeFromTop(48.0f);
 
-    g.setColour(juce::Colour(0xff080a0c));
-    g.fillRoundedRectangle(cockpit, 44.0f);
+    auto leftGrip = makeLeftGrip(wheel);
+    auto rightGrip = makeRightGrip(wheel);
+    paintGripTexture(g, leftGrip);
+    paintGripTexture(g, rightGrip);
 
-    auto inner = cockpit.reduced(18.0f);
-    g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.1f), inner.getCentreX(), inner.getY(),
-                                           F1Theme::panel().darker(0.7f), inner.getCentreX(), inner.getBottom(), false));
-    g.fillRoundedRectangle(inner, 32.0f);
+    auto cockpit = wheel.reduced(wheel.getWidth() * 0.105f, wheel.getHeight() * 0.055f);
+    cockpit.removeFromRight(142.0f);
 
-    g.setColour(F1Theme::red().withAlpha(0.9f));
-    g.drawRoundedRectangle(cockpit, 44.0f, 2.0f);
+    juce::Path body;
+    body.addRoundedRectangle(cockpit.getX(), cockpit.getY(), cockpit.getWidth(), cockpit.getHeight(), 38.0f, 38.0f);
+    g.setColour(juce::Colour(0xff050607));
+    g.fillPath(body);
+
+    auto inner = cockpit.reduced(15.0f);
+    g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.18f), inner.getCentreX(), inner.getY(),
+                                           F1Theme::panel().darker(0.76f), inner.getCentreX(), inner.getBottom(), false));
+    g.fillRoundedRectangle(inner, 28.0f);
+
+    for (auto x = inner.getX() + 18.0f; x < inner.getRight() - 18.0f; x += 34.0f)
+    {
+        g.setColour(juce::Colour(0x10ffffff));
+        g.drawVerticalLine(juce::roundToInt(x), inner.getY() + 10.0f, inner.getBottom() - 10.0f);
+    }
+
+    g.setColour(F1Theme::red().withAlpha(0.90f));
+    g.drawRoundedRectangle(cockpit, 38.0f, 2.2f);
+    g.setColour(F1Theme::cyan().withAlpha(0.22f));
+    g.drawRoundedRectangle(inner.reduced(2.0f), 26.0f, 1.4f);
 
     const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air
                              || activePage == Page::delay || activePage == Page::reverb;
     auto display = compactDisplay
-                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.44f, 58.0f).withY(inner.getY() + 10.0f)
-                       : inner.withSizeKeepingCentre(inner.getWidth() * 0.42f, inner.getHeight() * 0.34f);
+                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.46f, 64.0f).withY(inner.getY() + 10.0f)
+                       : inner.withSizeKeepingCentre(inner.getHeight() * 0.46f, inner.getHeight() * 0.46f);
     g.setColour(juce::Colour(0xff050607));
-    g.fillRoundedRectangle(display, 8.0f);
-    g.setColour(F1Theme::blue().withAlpha(0.55f));
-    g.drawRoundedRectangle(display, 8.0f, 1.5f);
+    if (compactDisplay)
+        g.fillRoundedRectangle(display, 10.0f);
+    else
+        g.fillEllipse(display);
+
+    g.setGradientFill(juce::ColourGradient(F1Theme::blue().withAlpha(0.26f), display.getCentreX(), display.getY(),
+                                           juce::Colours::transparentBlack, display.getCentreX(), display.getBottom(), false));
+    if (compactDisplay)
+        g.fillRoundedRectangle(display.reduced(3.0f), 8.0f);
+    else
+        g.fillEllipse(display.reduced(5.0f));
+
+    g.setColour(F1Theme::blue().withAlpha(0.70f));
+    if (compactDisplay)
+        g.drawRoundedRectangle(display, 10.0f, 1.5f);
+    else
+        g.drawEllipse(display, 2.0f);
 
     auto title = juce::String("GLOBAL CONTROL");
     auto route = juce::String("INPUT > CHANNEL > FET > AIR > DELAY > REVERB > OUTPUT");
@@ -164,6 +255,26 @@ void F1Dashboard::paint(juce::Graphics& g)
                      display.toNearestInt().withTrimmedTop(routingTextTop).reduced(10, 0),
                      juce::Justification::centred,
                      1);
+
+    auto ledRing = display.expanded(38.0f);
+    for (auto i = 0; i < 16; ++i)
+    {
+        const auto angle = juce::MathConstants<float>::twoPi * static_cast<float>(i) / 16.0f - juce::MathConstants<float>::halfPi;
+        const auto dot = juce::Point<float>(display.getCentreX() + std::cos(angle) * ledRing.getWidth() * 0.5f,
+                                            display.getCentreY() + std::sin(angle) * ledRing.getHeight() * 0.5f);
+        g.setColour((i % 5 == 0 ? F1Theme::cyan() : F1Theme::mutedText()).withAlpha(i % 5 == 0 ? 0.65f : 0.20f));
+        g.fillEllipse(juce::Rectangle<float>(6.0f, 6.0f).withCentre(dot));
+    }
+
+    const auto screwArea = cockpit.reduced(28.0f, 24.0f);
+    paintScrew(g, screwArea.getTopLeft() + juce::Point<float>(8.0f, 8.0f), 6.0f);
+    paintScrew(g, screwArea.getTopRight() + juce::Point<float>(-8.0f, 8.0f), 6.0f);
+    paintScrew(g, screwArea.getBottomLeft() + juce::Point<float>(8.0f, -8.0f), 6.0f);
+    paintScrew(g, screwArea.getBottomRight() + juce::Point<float>(-8.0f, -8.0f), 6.0f);
+
+    g.setColour(F1Theme::mutedText().withAlpha(0.55f));
+    g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+    g.drawFittedText("UI: F1 Cockpit", getLocalBounds().reduced(34).removeFromBottom(18), juce::Justification::centredRight, 1);
 }
 
 void F1Dashboard::resized()

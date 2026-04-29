@@ -1,6 +1,33 @@
 #include "GordoKnob.h"
 #include "F1Theme.h"
 
+#include <cmath>
+
+namespace
+{
+    juce::Colour accentForLabel(const juce::String& label)
+    {
+        const auto upper = label.toUpperCase();
+
+        if (upper.contains("COMP") || upper.contains("PUNCH") || upper.contains("DRIVE") || upper.contains("THRESH"))
+            return F1Theme::red();
+
+        if (upper.contains("AIR") || upper.contains("HIGH"))
+            return F1Theme::blue();
+
+        if (upper.contains("DELAY") || upper.contains("ECHO") || upper.contains("TIME") || upper.contains("FEEDBACK"))
+            return F1Theme::amber();
+
+        if (upper.contains("REVERB") || upper.contains("SPACE") || upper.contains("WIDTH"))
+            return F1Theme::cyan();
+
+        if (upper.contains("LOW") || upper.contains("TONE") || upper.contains("CHANNEL"))
+            return F1Theme::green();
+
+        return F1Theme::blue();
+    }
+}
+
 GordoKnob::GordoKnob(const juce::String& labelText)
     : juce::Slider(juce::Slider::RotaryHorizontalVerticalDrag, juce::Slider::TextBoxBelow),
       label(labelText)
@@ -21,32 +48,57 @@ void GordoKnob::setLabelText(const juce::String& newLabelText)
 void GordoKnob::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
-    auto labelArea = bounds.removeFromTop(34.0f);
-    auto valueArea = bounds.removeFromBottom(26.0f);
-    auto knobSize = juce::jmax(34.0f, juce::jmin(bounds.getWidth() - 12.0f, bounds.getHeight() - 6.0f));
-    auto knobArea = bounds.reduced(6.0f, 2.0f).withSizeKeepingCentre(knobSize, knobSize);
+    auto labelArea = bounds.removeFromTop(31.0f);
+    auto valueArea = bounds.removeFromBottom(25.0f);
+    auto knobSize = juce::jmax(34.0f, juce::jmin(bounds.getWidth() - 16.0f, bounds.getHeight() - 8.0f));
+    auto knobArea = bounds.reduced(8.0f, 2.0f).withSizeKeepingCentre(knobSize, knobSize);
 
     const auto radius = knobArea.getWidth() * 0.5f;
     const auto centre = knobArea.getCentre();
     const auto startAngle = juce::MathConstants<float>::pi * 1.25f;
     const auto endAngle = juce::MathConstants<float>::pi * 2.75f;
-    const auto proportion = static_cast<float>((getValue() - getMinimum()) / (getMaximum() - getMinimum()));
+    const auto range = getMaximum() - getMinimum();
+    const auto proportion = range > 0.0 ? static_cast<float>((getValue() - getMinimum()) / range) : 0.0f;
     const auto angle = juce::jmap(proportion, startAngle, endAngle);
+    const auto accent = accentForLabel(label);
+
+    g.setColour(juce::Colour(0x88000000));
+    g.fillRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f), 7.0f);
+    g.setColour(juce::Colour(0x18ffffff));
+    g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.5f), 7.0f, 1.0f);
 
     g.setColour(juce::Colour(0xff07090b));
-    g.fillEllipse(knobArea.expanded(5.0f));
+    g.fillEllipse(knobArea.expanded(7.0f));
+
+    for (auto tick = 0; tick <= 10; ++tick)
+    {
+        const auto tickAngle = juce::jmap(static_cast<float>(tick) / 10.0f, startAngle, endAngle);
+        const auto tickLength = tick % 5 == 0 ? 6.0f : 3.5f;
+        const auto outer = juce::Point<float>(centre.x + std::sin(tickAngle) * (radius + 10.0f),
+                                              centre.y - std::cos(tickAngle) * (radius + 10.0f));
+        const auto inner = juce::Point<float>(centre.x + std::sin(tickAngle) * (radius + 10.0f - tickLength),
+                                              centre.y - std::cos(tickAngle) * (radius + 10.0f - tickLength));
+        g.setColour(tick <= juce::roundToInt(proportion * 10.0f) ? accent.withAlpha(0.72f)
+                                                                 : F1Theme::mutedText().withAlpha(0.22f));
+        g.drawLine(outer.x, outer.y, inner.x, inner.y, 1.3f);
+    }
 
     g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.25f), centre.x, knobArea.getY(),
                                            F1Theme::metal().darker(0.55f), centre.x, knobArea.getBottom(), false));
     g.fillEllipse(knobArea);
+    g.setColour(juce::Colour(0xff050607));
+    g.fillEllipse(knobArea.reduced(radius * 0.33f));
 
-    g.setColour(F1Theme::blue().withAlpha(0.85f));
+    g.setColour(accent.withAlpha(0.95f));
     juce::Path arc;
-    arc.addCentredArc(centre.x, centre.y, radius + 4.0f, radius + 4.0f, 0.0f, startAngle, angle, true);
-    g.strokePath(arc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    arc.addCentredArc(centre.x, centre.y, radius + 5.0f, radius + 5.0f, 0.0f, startAngle, angle, true);
+    g.strokePath(arc, juce::PathStrokeType(5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+    g.setColour(accent.withAlpha(0.16f));
+    g.fillEllipse(knobArea.reduced(radius * 0.18f));
 
     juce::Path pointer;
-    pointer.addRectangle(-2.0f, -radius + 10.0f, 4.0f, radius * 0.5f);
+    pointer.addRoundedRectangle(-2.5f, -radius + 9.0f, 5.0f, radius * 0.54f, 2.0f);
     pointer.applyTransform(juce::AffineTransform::rotation(angle).translated(centre.x, centre.y));
     g.setColour(F1Theme::text());
     g.fillPath(pointer);
@@ -55,13 +107,13 @@ void GordoKnob::paint(juce::Graphics& g)
     g.drawEllipse(knobArea, 1.4f);
 
     g.setColour(F1Theme::text());
-    g.setFont(juce::FontOptions(13.0f, juce::Font::bold));
+    g.setFont(juce::FontOptions(12.5f, juce::Font::bold));
     g.drawFittedText(label, labelArea.toNearestInt(), juce::Justification::centred, 2);
 
     auto valueBox = valueArea.reduced(8.0f, 2.0f);
-    g.setColour(juce::Colour(0xaa050607));
+    g.setColour(juce::Colour(0xdd050607));
     g.fillRoundedRectangle(valueBox, 4.0f);
-    g.setColour(F1Theme::blue().withAlpha(0.35f));
+    g.setColour(accent.withAlpha(0.45f));
     g.drawRoundedRectangle(valueBox, 4.0f, 1.0f);
     g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(12.0f, juce::Font::bold));

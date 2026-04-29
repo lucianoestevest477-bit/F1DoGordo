@@ -15,6 +15,7 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
 
     auto& state = audioProcessor.apvts;
 
+    // These controls are designed to be host-automation/controller-mapping friendly.
     // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH, AIR, ECHO and SPACE affect audio now.
     // reverbSend remains in the APVTS as a legacy macro ID; SPACE controls the active reverbMix parameter.
     sliderAttachments.push_back(std::make_unique<SliderAttachment>(state, Parameters::inputGainDb, dashboard.inputGain));
