@@ -18,6 +18,8 @@ namespace
 
     void paintGripTexture(juce::Graphics& g, juce::Path grip)
     {
+        g.setColour(juce::Colours::black.withAlpha(0.42f));
+        g.fillPath(grip, juce::AffineTransform::translation(0.0f, 6.0f));
         g.setColour(juce::Colour(0xff050607));
         g.fillPath(grip);
         g.setGradientFill(juce::ColourGradient(juce::Colour(0xff1a1d22), 0.0f, grip.getBounds().getY(),
@@ -33,19 +35,70 @@ namespace
         g.strokePath(grip, juce::PathStrokeType(2.0f));
     }
 
+    void paintBevelPanel(juce::Graphics& g, juce::Path panel, juce::Colour accent)
+    {
+        g.setColour(juce::Colours::black.withAlpha(0.40f));
+        g.fillPath(panel, juce::AffineTransform::translation(0.0f, 5.0f));
+        g.setColour(juce::Colour(0xff050607));
+        g.fillPath(panel);
+
+        const auto bounds = panel.getBounds();
+        g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.20f), bounds.getCentreX(), bounds.getY(),
+                                               F1Theme::panel().darker(0.78f), bounds.getCentreX(), bounds.getBottom(), false));
+        g.fillPath(panel);
+        g.setColour(juce::Colours::white.withAlpha(0.08f));
+        g.strokePath(panel, juce::PathStrokeType(3.0f));
+        g.setColour(accent.withAlpha(0.55f));
+        g.strokePath(panel, juce::PathStrokeType(1.4f));
+    }
+
+    void paintRoundCap(juce::Graphics& g, juce::Point<float> centre, float radius, juce::Colour accent, const juce::String& text)
+    {
+        auto area = juce::Rectangle<float>(radius * 2.0f, radius * 2.0f).withCentre(centre);
+        g.setColour(juce::Colours::black.withAlpha(0.42f));
+        g.fillEllipse(area.expanded(5.0f));
+        g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.28f), centre.x, area.getY(),
+                                               juce::Colour(0xff050607), centre.x, area.getBottom(), false));
+        g.fillEllipse(area);
+        g.setColour(accent.withAlpha(0.78f));
+        g.drawEllipse(area.reduced(2.0f), 3.0f);
+        g.setColour(accent.withAlpha(0.20f));
+        g.fillEllipse(area.reduced(radius * 0.34f));
+        g.setColour(F1Theme::text());
+        g.setFont(juce::FontOptions(radius * 0.48f, juce::Font::bold));
+        g.drawFittedText(text, area.toNearestInt().reduced(5), juce::Justification::centred, 1);
+    }
+
+    void paintToggleDecor(juce::Graphics& g, juce::Rectangle<float> area, juce::Colour accent, const juce::String& label)
+    {
+        g.setColour(juce::Colours::black.withAlpha(0.50f));
+        g.fillRoundedRectangle(area, 7.0f);
+        g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.12f), area.getX(), area.getY(),
+                                               F1Theme::metal().darker(0.70f), area.getX(), area.getBottom(), false));
+        g.fillRoundedRectangle(area.reduced(1.0f), 6.0f);
+
+        const auto stem = area.withSizeKeepingCentre(7.0f, area.getHeight() * 0.48f).translated(0.0f, -2.0f);
+        g.setColour(accent.withAlpha(0.68f));
+        g.fillRoundedRectangle(stem, 3.0f);
+        g.setColour(F1Theme::text());
+        g.setFont(juce::FontOptions(9.0f, juce::Font::bold));
+        g.drawFittedText(label, area.toNearestInt().withTrimmedTop(juce::roundToInt(area.getHeight() * 0.55f)).reduced(2, 0),
+                         juce::Justification::centred, 1);
+    }
+
     juce::Path makeLeftGrip(juce::Rectangle<float> wheel)
     {
         juce::Path path;
-        const auto left = wheel.getX() + 8.0f;
-        const auto top = wheel.getY() + wheel.getHeight() * 0.12f;
-        const auto bottom = wheel.getBottom() - wheel.getHeight() * 0.10f;
-        const auto inner = wheel.getX() + wheel.getWidth() * 0.19f;
-        const auto outer = wheel.getX() + wheel.getWidth() * 0.035f;
+        const auto left = wheel.getX() + 2.0f;
+        const auto top = wheel.getY() + wheel.getHeight() * 0.04f;
+        const auto bottom = wheel.getBottom() - wheel.getHeight() * 0.04f;
+        const auto inner = wheel.getX() + wheel.getWidth() * 0.235f;
+        const auto outer = wheel.getX() + wheel.getWidth() * 0.018f;
 
-        path.startNewSubPath(inner, top + 16.0f);
-        path.cubicTo(outer, top - 8.0f, left, wheel.getCentreY() - 92.0f, left + 6.0f, wheel.getCentreY());
-        path.cubicTo(left, wheel.getCentreY() + 94.0f, outer, bottom + 8.0f, inner, bottom - 20.0f);
-        path.cubicTo(inner + 48.0f, bottom - 64.0f, inner + 48.0f, top + 66.0f, inner, top + 16.0f);
+        path.startNewSubPath(inner, top + 22.0f);
+        path.cubicTo(outer + 34.0f, top - 26.0f, left - 8.0f, wheel.getCentreY() - 130.0f, left + 8.0f, wheel.getCentreY());
+        path.cubicTo(left - 8.0f, wheel.getCentreY() + 132.0f, outer + 34.0f, bottom + 26.0f, inner, bottom - 34.0f);
+        path.cubicTo(inner + 66.0f, bottom - 98.0f, inner + 66.0f, top + 92.0f, inner, top + 22.0f);
         path.closeSubPath();
         return path;
     }
@@ -159,26 +212,55 @@ bool F1Dashboard::isCompressorPage() const noexcept
 void F1Dashboard::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds();
-    auto wheel = bounds.reduced(28, 24).toFloat();
-    wheel.removeFromTop(48.0f);
+    auto wheel = bounds.reduced(20, 18).toFloat();
+    wheel.removeFromTop(56.0f);
 
     auto leftGrip = makeLeftGrip(wheel);
     auto rightGrip = makeRightGrip(wheel);
     paintGripTexture(g, leftGrip);
     paintGripTexture(g, rightGrip);
 
-    auto cockpit = wheel.reduced(wheel.getWidth() * 0.105f, wheel.getHeight() * 0.055f);
-    cockpit.removeFromRight(142.0f);
+    auto topBridge = wheel.reduced(wheel.getWidth() * 0.175f, 0.0f).removeFromTop(82.0f).translated(0.0f, 6.0f);
+    juce::Path bridge;
+    bridge.startNewSubPath(topBridge.getX() + 28.0f, topBridge.getY() + 8.0f);
+    bridge.lineTo(topBridge.getRight() - 28.0f, topBridge.getY() + 8.0f);
+    bridge.lineTo(topBridge.getRight() - 6.0f, topBridge.getCentreY());
+    bridge.lineTo(topBridge.getRight() - 46.0f, topBridge.getBottom() - 7.0f);
+    bridge.lineTo(topBridge.getX() + 46.0f, topBridge.getBottom() - 7.0f);
+    bridge.lineTo(topBridge.getX() + 6.0f, topBridge.getCentreY());
+    bridge.closeSubPath();
+    paintBevelPanel(g, bridge, F1Theme::red());
+
+    g.setColour(F1Theme::text());
+    g.setFont(juce::FontOptions(14.0f, juce::Font::bold));
+    g.drawFittedText("COCKPIT FX BUS", topBridge.toNearestInt().reduced(90, 20), juce::Justification::centred, 1);
+    g.setColour(F1Theme::mutedText());
+    g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+    g.drawFittedText("HOST MAP READY", topBridge.toNearestInt().reduced(16, 11), juce::Justification::centredLeft, 1);
+    g.drawFittedText("HQ AUDIO", topBridge.toNearestInt().reduced(16, 11), juce::Justification::centredRight, 1);
+
+    paintRoundCap(g, topBridge.getTopLeft() + juce::Point<float>(48.0f, 32.0f), 22.0f, F1Theme::green(), "CH");
+    paintRoundCap(g, topBridge.getTopRight() + juce::Point<float>(-48.0f, 32.0f), 22.0f, F1Theme::amber(), "FX");
+
+    auto cockpit = wheel.reduced(wheel.getWidth() * 0.145f, wheel.getHeight() * 0.035f);
+    cockpit.removeFromTop(52.0f);
+    cockpit.removeFromRight(126.0f);
 
     juce::Path body;
-    body.addRoundedRectangle(cockpit.getX(), cockpit.getY(), cockpit.getWidth(), cockpit.getHeight(), 38.0f, 38.0f);
-    g.setColour(juce::Colour(0xff050607));
-    g.fillPath(body);
+    body.startNewSubPath(cockpit.getX() + 78.0f, cockpit.getY() + 6.0f);
+    body.lineTo(cockpit.getRight() - 78.0f, cockpit.getY() + 6.0f);
+    body.cubicTo(cockpit.getRight() + 26.0f, cockpit.getY() + 58.0f,
+                 cockpit.getRight() + 10.0f, cockpit.getBottom() - 64.0f,
+                 cockpit.getRight() - 54.0f, cockpit.getBottom() - 8.0f);
+    body.lineTo(cockpit.getX() + 54.0f, cockpit.getBottom() - 8.0f);
+    body.cubicTo(cockpit.getX() - 10.0f, cockpit.getBottom() - 64.0f,
+                 cockpit.getX() - 26.0f, cockpit.getY() + 58.0f,
+                 cockpit.getX() + 78.0f, cockpit.getY() + 6.0f);
+    body.closeSubPath();
+    paintBevelPanel(g, body, F1Theme::cyan());
 
     auto inner = cockpit.reduced(15.0f);
-    g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.18f), inner.getCentreX(), inner.getY(),
-                                           F1Theme::panel().darker(0.76f), inner.getCentreX(), inner.getBottom(), false));
-    g.fillRoundedRectangle(inner, 28.0f);
+    inner.removeFromBottom(4.0f);
 
     for (auto x = inner.getX() + 18.0f; x < inner.getRight() - 18.0f; x += 34.0f)
     {
@@ -186,19 +268,45 @@ void F1Dashboard::paint(juce::Graphics& g)
         g.drawVerticalLine(juce::roundToInt(x), inner.getY() + 10.0f, inner.getBottom() - 10.0f);
     }
 
-    g.setColour(F1Theme::red().withAlpha(0.90f));
-    g.drawRoundedRectangle(cockpit, 38.0f, 2.2f);
-    g.setColour(F1Theme::cyan().withAlpha(0.22f));
-    g.drawRoundedRectangle(inner.reduced(2.0f), 26.0f, 1.4f);
-
     const auto compactDisplay = activePage == Page::channel || activePage == Page::comp || activePage == Page::air
                              || activePage == Page::delay || activePage == Page::reverb;
+
+    auto hub = inner.withSizeKeepingCentre(juce::jmin(310.0f, inner.getHeight() * 0.62f),
+                                           juce::jmin(310.0f, inner.getHeight() * 0.62f));
+    hub = hub.translated(0.0f, compactDisplay ? -8.0f : -2.0f);
+
+    g.setColour(juce::Colours::black.withAlpha(0.45f));
+    g.fillEllipse(hub.expanded(18.0f));
+    g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.28f), hub.getCentreX(), hub.getY(),
+                                           juce::Colour(0xff050607), hub.getCentreX(), hub.getBottom(), false));
+    g.fillEllipse(hub.expanded(7.0f));
+
+    const auto ringRadius = hub.getWidth() * 0.5f + 13.0f;
+    for (auto segment = 0; segment < 24; ++segment)
+    {
+        const auto angle = juce::MathConstants<float>::twoPi * static_cast<float>(segment) / 24.0f;
+        const auto p1 = juce::Point<float>(hub.getCentreX() + std::cos(angle) * ringRadius,
+                                           hub.getCentreY() + std::sin(angle) * ringRadius);
+        const auto p2 = juce::Point<float>(hub.getCentreX() + std::cos(angle) * (ringRadius - 12.0f),
+                                           hub.getCentreY() + std::sin(angle) * (ringRadius - 12.0f));
+        g.setColour((segment % 6 == 0 ? F1Theme::red()
+                                      : segment % 3 == 0 ? F1Theme::amber()
+                                                         : F1Theme::cyan()).withAlpha(segment % 3 == 0 ? 0.72f : 0.30f));
+        g.drawLine(p1.x, p1.y, p2.x, p2.y, segment % 6 == 0 ? 2.4f : 1.2f);
+    }
+
+    g.setColour(juce::Colour(0xff050607));
+    g.fillEllipse(hub.reduced(26.0f));
+    g.setGradientFill(juce::ColourGradient(F1Theme::panel().brighter(0.18f), hub.getCentreX(), hub.getY(),
+                                           F1Theme::panel().darker(0.85f), hub.getCentreX(), hub.getBottom(), false));
+    g.fillEllipse(hub.reduced(32.0f));
+
     auto display = compactDisplay
-                       ? inner.withSizeKeepingCentre(inner.getWidth() * 0.46f, 64.0f).withY(inner.getY() + 10.0f)
-                       : inner.withSizeKeepingCentre(inner.getHeight() * 0.46f, inner.getHeight() * 0.46f);
+                       ? hub.withSizeKeepingCentre(hub.getWidth() * 0.88f, 72.0f).withY(hub.getY() + 34.0f)
+                       : hub.reduced(54.0f);
     g.setColour(juce::Colour(0xff050607));
     if (compactDisplay)
-        g.fillRoundedRectangle(display, 10.0f);
+        g.fillRoundedRectangle(display, 12.0f);
     else
         g.fillEllipse(display);
 
@@ -211,7 +319,7 @@ void F1Dashboard::paint(juce::Graphics& g)
 
     g.setColour(F1Theme::blue().withAlpha(0.70f));
     if (compactDisplay)
-        g.drawRoundedRectangle(display, 10.0f, 1.5f);
+        g.drawRoundedRectangle(display, 12.0f, 1.5f);
     else
         g.drawEllipse(display, 2.0f);
 
@@ -256,15 +364,32 @@ void F1Dashboard::paint(juce::Graphics& g)
                      juce::Justification::centred,
                      1);
 
-    auto ledRing = display.expanded(38.0f);
+    auto ledRing = hub.expanded(12.0f);
     for (auto i = 0; i < 16; ++i)
     {
         const auto angle = juce::MathConstants<float>::twoPi * static_cast<float>(i) / 16.0f - juce::MathConstants<float>::halfPi;
-        const auto dot = juce::Point<float>(display.getCentreX() + std::cos(angle) * ledRing.getWidth() * 0.5f,
-                                            display.getCentreY() + std::sin(angle) * ledRing.getHeight() * 0.5f);
+        const auto dot = juce::Point<float>(hub.getCentreX() + std::cos(angle) * ledRing.getWidth() * 0.5f,
+                                            hub.getCentreY() + std::sin(angle) * ledRing.getHeight() * 0.5f);
         g.setColour((i % 5 == 0 ? F1Theme::cyan() : F1Theme::mutedText()).withAlpha(i % 5 == 0 ? 0.65f : 0.20f));
         g.fillEllipse(juce::Rectangle<float>(6.0f, 6.0f).withCentre(dot));
     }
+
+    const auto leftPod = juce::Rectangle<float>(inner.getX() + 22.0f, inner.getY() + 114.0f, 102.0f, inner.getHeight() - 216.0f);
+    const auto rightPod = leftPod.withX(inner.getRight() - 124.0f);
+    g.setColour(juce::Colour(0xaa050607));
+    g.fillRoundedRectangle(leftPod, 24.0f);
+    g.fillRoundedRectangle(rightPod, 24.0f);
+    g.setColour(F1Theme::mutedText().withAlpha(0.18f));
+    g.drawRoundedRectangle(leftPod, 24.0f, 1.2f);
+    g.drawRoundedRectangle(rightPod, 24.0f, 1.2f);
+
+    auto switchDeck = juce::Rectangle<float>(hub.getCentreX() - 170.0f, inner.getBottom() - 62.0f, 340.0f, 48.0f);
+    g.setColour(juce::Colour(0xaa050607));
+    g.fillRoundedRectangle(switchDeck, 10.0f);
+    paintToggleDecor(g, switchDeck.removeFromLeft(74.0f).reduced(13.0f, 7.0f), F1Theme::green(), "MAP");
+    paintToggleDecor(g, switchDeck.removeFromLeft(74.0f).reduced(13.0f, 7.0f), F1Theme::red(), "CUT");
+    paintToggleDecor(g, switchDeck.removeFromLeft(74.0f).reduced(13.0f, 7.0f), F1Theme::amber(), "BUS");
+    paintToggleDecor(g, switchDeck.removeFromLeft(74.0f).reduced(13.0f, 7.0f), F1Theme::cyan(), "AUX");
 
     const auto screwArea = cockpit.reduced(28.0f, 24.0f);
     paintScrew(g, screwArea.getTopLeft() + juce::Point<float>(8.0f, 8.0f), 6.0f);
@@ -280,20 +405,26 @@ void F1Dashboard::paint(juce::Graphics& g)
 void F1Dashboard::resized()
 {
     auto area = getLocalBounds().reduced(24);
-    auto tabArea = area.removeFromTop(48);
+    auto tabRail = area.removeFromTop(112);
+    auto tabArea = tabRail.removeFromBottom(50)
+                      .withSizeKeepingCentre(juce::jmin(980, tabRail.getWidth() - 190), 48);
     const auto tabWidth = tabArea.getWidth() / static_cast<int>(tabs.size());
 
-    for (auto* tab : tabs)
-        tab->setBounds(tabArea.removeFromLeft(tabWidth).reduced(4, 5));
+    for (auto index = 0; index < static_cast<int>(tabs.size()); ++index)
+    {
+        auto cell = tabArea.removeFromLeft(tabWidth).reduced(5, 5);
+        const auto edgeDrop = juce::jmax(0, std::abs(index - 3) - 1) * 3;
+        tabs[static_cast<size_t>(index)]->setBounds(cell.translated(0, edgeDrop));
+    }
 
-    auto meterArea = area.removeFromRight(170).reduced(8, 32);
+    auto meterArea = area.removeFromRight(170).reduced(8, 16);
     inputMeter.setBounds(meterArea.removeFromLeft(48));
     meterArea.removeFromLeft(8);
     outputMeter.setBounds(meterArea.removeFromLeft(48));
     meterArea.removeFromLeft(8);
     gainReductionMeter.setBounds(meterArea.removeFromLeft(48));
 
-    auto cockpit = area.reduced(50, 40);
+    auto cockpit = area.reduced(58, 30);
 
     if (activePage == Page::channel)
         layoutChannelPage(cockpit);
@@ -308,9 +439,9 @@ void F1Dashboard::resized()
     else
         layoutGlobalPage(cockpit);
 
-    auto ledArea = cockpit.withSizeKeepingCentre(260, 24).translated(0, 68);
+    auto ledArea = cockpit.withSizeKeepingCentre(300, 24).translated(0, activePage == Page::global ? -68 : -76);
     for (auto& led : moduleLeds)
-        led.setBounds(ledArea.removeFromLeft(52).withSizeKeepingCentre(18, 18));
+        led.setBounds(ledArea.removeFromLeft(60).withSizeKeepingCentre(18, 18));
 }
 
 void F1Dashboard::setPage(Page newPage)
@@ -384,26 +515,26 @@ void F1Dashboard::updateControlVisibility()
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
 {
-    auto topKnobs = cockpit.removeFromTop(150);
-    auto bottomKnobs = cockpit.removeFromBottom(150);
+    auto topKnobs = cockpit.removeFromTop(142);
+    auto bottomKnobs = cockpit.removeFromBottom(142);
 
-    inputGain.setBounds(topKnobs.removeFromLeft(136));
-    outputGain.setBounds(topKnobs.removeFromRight(136));
-    channelMix.setBounds(topKnobs.removeFromLeft(136));
-    masterWidth.setBounds(topKnobs.removeFromRight(136));
+    inputGain.setBounds(topKnobs.removeFromLeft(134));
+    outputGain.setBounds(topKnobs.removeFromRight(134));
+    channelMix.setBounds(topKnobs.removeFromLeft(134));
+    masterWidth.setBounds(topKnobs.removeFromRight(134));
 
-    delaySend.setBounds(bottomKnobs.removeFromLeft(136));
-    reverbSend.setBounds(bottomKnobs.removeFromRight(136));
-    compMix.setBounds(bottomKnobs.removeFromLeft(136));
-    airMix.setBounds(bottomKnobs.removeFromRight(136));
+    delaySend.setBounds(bottomKnobs.removeFromLeft(134));
+    reverbSend.setBounds(bottomKnobs.removeFromRight(134));
+    compMix.setBounds(bottomKnobs.removeFromLeft(134));
+    airMix.setBounds(bottomKnobs.removeFromRight(134));
 
-    auto switchArea = cockpit.withSizeKeepingCentre(430, 64);
-    globalBypass.setBounds(switchArea.removeFromLeft(82).reduced(4, 12));
-    channelEnabled.setBounds(switchArea.removeFromLeft(70).reduced(4, 12));
-    compEnabled.setBounds(switchArea.removeFromLeft(64).reduced(4, 12));
-    airEnabled.setBounds(switchArea.removeFromLeft(58).reduced(4, 12));
-    delayEnabled.setBounds(switchArea.removeFromLeft(70).reduced(4, 12));
-    reverbEnabled.setBounds(switchArea.removeFromLeft(78).reduced(4, 12));
+    auto switchArea = cockpit.withSizeKeepingCentre(558, 56);
+    globalBypass.setBounds(switchArea.removeFromLeft(88).reduced(4, 9));
+    channelEnabled.setBounds(switchArea.removeFromLeft(86).reduced(4, 9));
+    compEnabled.setBounds(switchArea.removeFromLeft(76).reduced(4, 9));
+    airEnabled.setBounds(switchArea.removeFromLeft(70).reduced(4, 9));
+    delayEnabled.setBounds(switchArea.removeFromLeft(82).reduced(4, 9));
+    reverbEnabled.setBounds(switchArea.removeFromLeft(90).reduced(4, 9));
 }
 
 void F1Dashboard::layoutChannelPage(juce::Rectangle<int> cockpit)
