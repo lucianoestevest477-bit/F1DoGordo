@@ -62,25 +62,31 @@ void GordoKnob::paint(juce::Graphics& g)
     const auto angle = juce::jmap(proportion, startAngle, endAngle);
     const auto accent = accentForLabel(label);
 
-    auto mount = knobArea.expanded(13.0f);
+    auto mount = knobArea.expanded(14.0f);
     juce::Path mountPath;
-    mountPath.startNewSubPath(mount.getX() + mount.getWidth() * 0.18f, mount.getY());
-    mountPath.lineTo(mount.getRight() - mount.getWidth() * 0.18f, mount.getY());
-    mountPath.lineTo(mount.getRight(), mount.getY() + mount.getHeight() * 0.24f);
-    mountPath.lineTo(mount.getRight(), mount.getBottom() - mount.getHeight() * 0.24f);
-    mountPath.lineTo(mount.getRight() - mount.getWidth() * 0.18f, mount.getBottom());
-    mountPath.lineTo(mount.getX() + mount.getWidth() * 0.18f, mount.getBottom());
-    mountPath.lineTo(mount.getX(), mount.getBottom() - mount.getHeight() * 0.24f);
-    mountPath.lineTo(mount.getX(), mount.getY() + mount.getHeight() * 0.24f);
+    for (auto point = 0; point < 18; ++point)
+    {
+        const auto pointAngle = juce::MathConstants<float>::twoPi * static_cast<float>(point) / 18.0f
+                              - juce::MathConstants<float>::halfPi;
+        const auto pointRadius = mount.getWidth() * (point % 2 == 0 ? 0.50f : 0.455f);
+        const auto p = juce::Point<float>(centre.x + std::cos(pointAngle) * pointRadius,
+                                          centre.y + std::sin(pointAngle) * pointRadius);
+        if (point == 0)
+            mountPath.startNewSubPath(p);
+        else
+            mountPath.lineTo(p);
+    }
     mountPath.closeSubPath();
 
-    g.setColour(juce::Colours::black.withAlpha(0.46f));
-    g.fillPath(mountPath, juce::AffineTransform::translation(0.0f, 5.0f));
-    g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.12f), mount.getCentreX(), mount.getY(),
+    g.setColour(juce::Colours::black.withAlpha(0.62f));
+    g.fillPath(mountPath, juce::AffineTransform::translation(0.0f, 6.0f));
+    g.setColour(accent.withAlpha(0.14f));
+    g.fillPath(mountPath, juce::AffineTransform::scale(1.08f, 1.08f, centre.x, centre.y));
+    g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.16f), mount.getCentreX(), mount.getY(),
                                            juce::Colour(0xff050607), mount.getCentreX(), mount.getBottom(), false));
     g.fillPath(mountPath);
-    g.setColour(accent.withAlpha(0.30f));
-    g.strokePath(mountPath, juce::PathStrokeType(1.2f));
+    g.setColour(accent.withAlpha(0.44f));
+    g.strokePath(mountPath, juce::PathStrokeType(1.6f));
 
     g.setColour(juce::Colour(0xff07090b));
     g.fillEllipse(knobArea.expanded(10.0f));
@@ -109,8 +115,8 @@ void GordoKnob::paint(juce::Graphics& g)
         g.drawLine(outer.x, outer.y, inner.x, inner.y, 1.3f);
     }
 
-    g.setColour(accent.withAlpha(0.15f));
-    g.fillEllipse(knobArea.expanded(5.0f));
+    g.setColour(accent.withAlpha(0.20f));
+    g.fillEllipse(knobArea.expanded(7.0f));
     g.setGradientFill(juce::ColourGradient(F1Theme::metal().brighter(0.25f), centre.x, knobArea.getY(),
                                            F1Theme::metal().darker(0.55f), centre.x, knobArea.getBottom(), false));
     g.fillEllipse(knobArea);
@@ -119,10 +125,10 @@ void GordoKnob::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff050607));
     g.fillEllipse(knobArea.reduced(radius * 0.33f));
 
-    g.setColour(accent.withAlpha(0.95f));
+    g.setColour(accent.withAlpha(0.98f));
     juce::Path arc;
     arc.addCentredArc(centre.x, centre.y, radius + 5.0f, radius + 5.0f, 0.0f, startAngle, angle, true);
-    g.strokePath(arc, juce::PathStrokeType(5.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(arc, juce::PathStrokeType(6.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     g.setColour(accent.withAlpha(0.16f));
     g.fillEllipse(knobArea.reduced(radius * 0.18f));

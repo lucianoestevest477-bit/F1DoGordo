@@ -54,9 +54,12 @@ void GordoButton::paintButton(juce::Graphics& g, bool highlighted, bool down)
     g.setColour(juce::Colour(0xff050607));
     g.fillPath(shell);
 
+    g.setColour(accent.withAlpha(active ? 0.24f : highlighted ? 0.12f : 0.06f));
+    g.fillPath(shell, juce::AffineTransform::scale(1.08f, 1.22f, bounds.getCentreX(), bounds.getCentreY()));
+
     if (active)
     {
-        g.setColour(accent.withAlpha(highlighted ? 0.34f : 0.22f));
+        g.setColour(accent.withAlpha(highlighted ? 0.44f : 0.30f));
         g.fillPath(shell, juce::AffineTransform::scale(1.04f, 1.12f, bounds.getCentreX(), bounds.getCentreY()));
     }
 
@@ -71,13 +74,13 @@ void GordoButton::paintButton(juce::Graphics& g, bool highlighted, bool down)
     g.setColour(active ? juce::Colours::white.withAlpha(0.30f) : juce::Colours::white.withAlpha(0.10f));
     g.fillRoundedRectangle(cap, 2.0f);
 
-    g.setColour(active ? accent.withAlpha(0.68f) : F1Theme::mutedText().withAlpha(0.26f));
-    g.strokePath(shell, juce::PathStrokeType(active ? 1.8f : 1.1f));
+    g.setColour(active ? accent.brighter(0.30f).withAlpha(0.92f) : F1Theme::mutedText().withAlpha(0.34f));
+    g.strokePath(shell, juce::PathStrokeType(active ? 2.2f : 1.2f));
 
     auto led = bounds.withSizeKeepingCentre(8.0f, 8.0f).withX(bounds.getRight() - 14.0f).withY(bounds.getY() + 7.0f);
     g.setColour(active ? accent.withAlpha(0.28f) : juce::Colours::black.withAlpha(0.35f));
     g.fillEllipse(led.expanded(3.0f));
-    g.setColour(active ? accent.brighter(0.45f) : F1Theme::metal().darker(0.6f));
+    g.setColour(active ? accent.brighter(0.68f) : F1Theme::metal().darker(0.72f));
     g.fillEllipse(led);
     g.setColour(juce::Colour(0x88000000));
     g.drawEllipse(led, 1.0f);

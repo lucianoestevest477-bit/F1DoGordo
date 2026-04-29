@@ -205,6 +205,35 @@ namespace
         path.applyTransform(juce::AffineTransform::scale(-1.0f, 1.0f, wheel.getCentreX(), wheel.getCentreY()));
         return path;
     }
+
+    juce::Path makeWheelBackplate(juce::Rectangle<float> wheel)
+    {
+        juce::Path path;
+        const auto cx = wheel.getCentreX();
+        const auto top = wheel.getY() + wheel.getHeight() * 0.045f;
+        const auto bottom = wheel.getBottom() - wheel.getHeight() * 0.025f;
+        const auto left = wheel.getX() + wheel.getWidth() * 0.075f;
+        const auto right = wheel.getRight() - wheel.getWidth() * 0.075f;
+
+        path.startNewSubPath(cx - wheel.getWidth() * 0.30f, top + 14.0f);
+        path.cubicTo(cx - wheel.getWidth() * 0.47f, top - 16.0f,
+                     left + 24.0f, wheel.getCentreY() - wheel.getHeight() * 0.34f,
+                     left + 38.0f, wheel.getCentreY() - wheel.getHeight() * 0.08f);
+        path.cubicTo(left + 18.0f, wheel.getCentreY() + wheel.getHeight() * 0.24f,
+                     cx - wheel.getWidth() * 0.33f, bottom + 14.0f,
+                     cx - wheel.getWidth() * 0.13f, bottom - 16.0f);
+        path.cubicTo(cx - wheel.getWidth() * 0.08f, bottom - 4.0f,
+                     cx + wheel.getWidth() * 0.08f, bottom - 4.0f,
+                     cx + wheel.getWidth() * 0.13f, bottom - 16.0f);
+        path.cubicTo(cx + wheel.getWidth() * 0.33f, bottom + 14.0f,
+                     right - 18.0f, wheel.getCentreY() + wheel.getHeight() * 0.24f,
+                     right - 38.0f, wheel.getCentreY() - wheel.getHeight() * 0.08f);
+        path.cubicTo(right - 24.0f, wheel.getCentreY() - wheel.getHeight() * 0.34f,
+                     cx + wheel.getWidth() * 0.47f, top - 16.0f,
+                     cx + wheel.getWidth() * 0.30f, top + 14.0f);
+        path.closeSubPath();
+        return path;
+    }
 }
 
 F1Dashboard::F1Dashboard()
@@ -311,6 +340,18 @@ void F1Dashboard::paint(juce::Graphics& g)
     auto wheel = bounds.reduced(8, 8).toFloat();
     wheel.removeFromTop(8.0f);
 
+    auto backplate = makeWheelBackplate(wheel);
+    g.setColour(juce::Colours::black.withAlpha(0.68f));
+    g.fillPath(backplate, juce::AffineTransform::translation(0.0f, 14.0f));
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff151a20), wheel.getCentreX(), wheel.getY() + 22.0f,
+                                           juce::Colour(0xff020304), wheel.getCentreX(), wheel.getBottom(), false));
+    g.fillPath(backplate);
+    paintCarbonWeave(g, backplate.getBounds().reduced(18.0f));
+    g.setColour(juce::Colours::white.withAlpha(0.08f));
+    g.strokePath(backplate, juce::PathStrokeType(6.0f));
+    g.setColour(F1Theme::cyan().withAlpha(0.26f));
+    g.strokePath(backplate, juce::PathStrokeType(1.6f));
+
     auto leftGrip = makeLeftGrip(wheel);
     auto rightGrip = makeRightGrip(wheel);
     paintGripTexture(g, leftGrip);
@@ -329,13 +370,9 @@ void F1Dashboard::paint(juce::Graphics& g)
     bridge.closeSubPath();
     paintBevelPanel(g, bridge, F1Theme::red());
 
-    g.setColour(F1Theme::text());
-    g.setFont(juce::FontOptions(15.0f, juce::Font::bold));
-    g.drawFittedText("F1 DO GORDO  //  COCKPIT FX RACK", topBridge.toNearestInt().reduced(132, 24), juce::Justification::centred, 1);
-    g.setColour(F1Theme::mutedText());
+    g.setColour(F1Theme::mutedText().withAlpha(0.34f));
     g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
-    g.drawFittedText("HOST MAP READY", topBridge.toNearestInt().reduced(28, 18), juce::Justification::centredLeft, 1);
-    g.drawFittedText("QUALITY HQ", topBridge.toNearestInt().reduced(28, 18), juce::Justification::centredRight, 1);
+    g.drawFittedText("INTEGRATED CONTROL BRIDGE", topBridge.toNearestInt().reduced(132, 30), juce::Justification::centred, 1);
 
     for (auto x = topBridge.getX() + 184.0f; x < topBridge.getRight() - 184.0f; x += 18.0f)
     {
@@ -373,14 +410,14 @@ void F1Dashboard::paint(juce::Graphics& g)
     paintBevelPanel(g, body, F1Theme::cyan());
     paintCarbonWeave(g, cockpit.reduced(34.0f, 20.0f));
 
-    auto shoulderLeft = juce::Rectangle<float>(cockpit.getX() + 18.0f, cockpit.getY() + 58.0f, 148.0f, 86.0f);
-    auto shoulderRight = shoulderLeft.withX(cockpit.getRight() - 166.0f);
+    auto shoulderLeft = juce::Rectangle<float>(cockpit.getX() + 4.0f, cockpit.getY() + 48.0f, 178.0f, 98.0f);
+    auto shoulderRight = shoulderLeft.withX(cockpit.getRight() - 182.0f);
     g.setColour(juce::Colour(0xff090b0f));
-    g.fillRoundedRectangle(shoulderLeft, 28.0f);
-    g.fillRoundedRectangle(shoulderRight, 28.0f);
+    g.fillRoundedRectangle(shoulderLeft, 34.0f);
+    g.fillRoundedRectangle(shoulderRight, 34.0f);
     g.setColour(F1Theme::mutedText().withAlpha(0.24f));
-    g.drawRoundedRectangle(shoulderLeft, 28.0f, 1.0f);
-    g.drawRoundedRectangle(shoulderRight, 28.0f, 1.0f);
+    g.drawRoundedRectangle(shoulderLeft, 34.0f, 1.0f);
+    g.drawRoundedRectangle(shoulderRight, 34.0f, 1.0f);
     g.setColour(F1Theme::text().withAlpha(0.62f));
     g.setFont(juce::FontOptions(13.0f, juce::Font::bold));
     g.drawFittedText("MACRO", shoulderLeft.toNearestInt().reduced(12), juce::Justification::centred, 1);

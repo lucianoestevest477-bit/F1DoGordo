@@ -10,8 +10,8 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     setResizeLimits(1200, 700, 2200, 1400);
     setSize(1200, 700);
 
-    addAndMakeVisible(topBar);
     addAndMakeVisible(dashboard);
+    addAndMakeVisible(topBar);
 
     auto& state = audioProcessor.apvts;
 
@@ -134,8 +134,9 @@ void F1DoGordoAudioProcessorEditor::paint(juce::Graphics& g)
 void F1DoGordoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
-    topBar.setBounds(area.removeFromTop(74));
     dashboard.setBounds(area);
+    topBar.setBounds(area.removeFromTop(84).reduced(18, 6));
+    topBar.toFront(false);
 }
 
 void F1DoGordoAudioProcessorEditor::timerCallback()
