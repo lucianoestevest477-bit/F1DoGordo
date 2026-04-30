@@ -4,9 +4,9 @@
 
 namespace
 {
-    constexpr auto filterQ = 0.70710678f;
-    constexpr auto midBandQ = 1.05f;
-    constexpr auto sibilanceQ = 1.65f;
+    constexpr auto filterQ = 0.62f;
+    constexpr auto midBandQ = 0.72f;
+    constexpr auto sibilanceQ = 1.25f;
 
     float coefficientForTime(double sampleRate, float timeSeconds) noexcept
     {
@@ -189,23 +189,27 @@ void AirExciterModule::process(juce::AudioBuffer<float>& buffer)
         const auto currentOutputGain = outputGain.getNextValue();
         const auto currentMix = mix.getNextValue();
 
-        const auto excitationBase = juce::jmax(currentAmount, currentDrive * 0.22f);
+        const auto midIntensity = std::pow(juce::jlimit(0.0f, 1.0f, currentMidAir), 0.72f);
+        const auto highIntensity = std::pow(juce::jlimit(0.0f, 1.0f, currentHighAir), 0.72f);
+        const auto airDemand = juce::jlimit(0.0f, 1.0f, juce::jmax(midIntensity, highIntensity));
+        const auto colourAmount = 0.35f + juce::jlimit(0.0f, 1.0f, currentAmount) * 0.65f;
+        const auto effectiveDrive = juce::jlimit(0.0f, 1.0f, juce::jmax(currentDrive, airDemand * 0.50f));
+        const auto effectiveDensity = juce::jlimit(0.0f, 1.0f, juce::jmax(currentDensity, airDemand * 0.40f));
         const auto dynamicDb = juce::Decibels::gainToDecibels(dynamicEnvelope, -90.0f);
         const auto dynamicNormalised = juce::jlimit(0.0f, 1.0f, (dynamicDb + 58.0f) / 48.0f);
-        const auto dynamicFactor = (1.0f - currentDynamic) + currentDynamic * (0.18f + dynamicNormalised * 0.82f);
+        const auto dynamicFactor = (1.0f - currentDynamic) + currentDynamic * (0.62f + dynamicNormalised * 0.58f);
 
         const auto sibilanceDb = juce::Decibels::gainToDecibels(sibilanceEnvelope, -90.0f);
         const auto sibilanceOverDb = juce::jmax(0.0f, sibilanceDb + 28.0f);
-        const auto deEssReductionDb = juce::jlimit(0.0f, 12.0f, sibilanceOverDb * currentDeEss * (0.45f + currentHighAir * 0.55f));
-        const auto deEssGain = juce::Decibels::decibelsToGain(-deEssReductionDb);
+        const auto deEssReductionDb = juce::jlimit(0.0f, 8.0f, sibilanceOverDb * currentDeEss * (0.22f + highIntensity * 0.28f));
+        const auto deEssGain = juce::jmax(0.48f, juce::Decibels::decibelsToGain(-deEssReductionDb));
 
-        const auto harmonicDrive = 1.0f + currentDrive * 7.0f + currentDensity * 4.0f;
+        const auto harmonicDrive = 1.0f + effectiveDrive * 11.0f + effectiveDensity * 4.5f + airDemand * 3.0f;
         const auto harmonicNormaliser = 1.0f / std::tanh(harmonicDrive);
-        const auto densityWeight = 0.35f + currentDensity * 1.65f;
-        const auto midBlend = excitationBase * currentMidAir * dynamicFactor * (0.26f + currentDensity * 0.42f);
-        const auto highBlend = excitationBase * currentHighAir * dynamicFactor * deEssGain * (0.20f + currentDensity * 0.34f);
-        const auto harmonicBlend = excitationBase * densityWeight * dynamicFactor * deEssGain * (0.10f + currentDrive * 0.72f);
-        const auto safetyTrim = 1.0f - excitationBase * 0.04f;
+        const auto midBlend = midIntensity * dynamicFactor * (0.70f + colourAmount * 0.72f + effectiveDensity * 0.42f);
+        const auto highBlend = highIntensity * dynamicFactor * deEssGain * (0.90f + colourAmount * 0.92f + effectiveDensity * 0.48f);
+        const auto harmonicBlend = airDemand * dynamicFactor * deEssGain * (0.16f + effectiveDrive * 0.74f + effectiveDensity * 0.32f);
+        const auto safetyTrim = 1.0f - airDemand * 0.045f;
 
         for (auto channel = 0; channel < bufferChannels; ++channel)
         {
@@ -216,7 +220,8 @@ void AirExciterModule::process(juce::AudioBuffer<float>& buffer)
             const auto safeDry = std::isfinite(dry) ? dry : 0.0f;
             const auto safeMid = std::isfinite(mid) ? mid : 0.0f;
             const auto safeHigh = std::isfinite(high) ? high : 0.0f;
-            const auto harmonicSource = safeHigh * 0.72f + safeMid * 0.38f;
+            const auto harmonicSource = safeHigh * (0.95f + highIntensity * 0.65f)
+                                      + safeMid * (0.36f + midIntensity * 0.38f);
             const auto saturated = std::tanh(harmonicSource * harmonicDrive) * harmonicNormaliser;
             const auto harmonics = saturated - harmonicSource;
 
@@ -244,8 +249,8 @@ void AirExciterModule::process(juce::AudioBuffer<float>& buffer)
 void AirExciterModule::updateFilterCoefficients(bool force)
 {
     const auto frequency = sanitizeFrequency(getParameterValue(parameters.airFrequencyHz, 8000.0f));
-    const auto midFrequency = juce::jlimit(3000.0f, 8000.0f, frequency * 0.68f);
-    const auto sibilanceFrequency = juce::jlimit(5500.0f, 9000.0f, frequency * 0.92f);
+    const auto midFrequency = juce::jlimit(2500.0f, 7000.0f, frequency * 0.52f);
+    const auto sibilanceFrequency = juce::jlimit(8000.0f, 12000.0f, frequency * 1.12f);
     const auto tone = juce::jlimit(0.0f, 1.0f, getParameterValue(parameters.airTone, 0.5f));
     const auto frequencyChanged = frequency != cached.frequencyHz;
     const auto midFrequencyChanged = midFrequency != cached.midFrequencyHz;
@@ -274,7 +279,7 @@ void AirExciterModule::updateFilterCoefficients(bool force)
         const auto shelfFrequency = juce::jlimit(3000.0f,
                                                  static_cast<float>(sampleRate * 0.45),
                                                  frequency * 1.15f);
-        const auto shelfGainDb = -3.0f + tone * 9.0f;
+        const auto shelfGainDb = 3.0f + tone * 9.0f;
         *toneShelfFilter.state = juce::dsp::IIR::ArrayCoefficients<float>::makeHighShelf(sampleRate,
                                                                                          shelfFrequency,
                                                                                          filterQ,

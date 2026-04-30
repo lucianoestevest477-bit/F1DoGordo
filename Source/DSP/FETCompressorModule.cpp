@@ -14,6 +14,29 @@ namespace
 
         return std::exp(-1.0f / static_cast<float>(sampleRate * static_cast<double>(timeSeconds)));
     }
+
+    float normalise(float value, float minimum, float maximum) noexcept
+    {
+        return juce::jlimit(0.0f, 1.0f, (value - minimum) / (maximum - minimum));
+    }
+
+    float mapAttackToAudibleFetRange(float attackMs) noexcept
+    {
+        const auto normalised = normalise(juce::jlimit(0.02f, 2.0f, attackMs), 0.02f, 2.0f);
+        return 0.05f + std::pow(normalised, 1.35f) * 34.95f;
+    }
+
+    float mapReleaseToAudibleFetRange(float releaseMs) noexcept
+    {
+        const auto normalised = normalise(juce::jlimit(50.0f, 1200.0f, releaseMs), 50.0f, 1200.0f);
+        return 35.0f + std::pow(normalised, 1.12f) * 1565.0f;
+    }
+
+    float ratioAudibilityScale(float ratio) noexcept
+    {
+        const auto normalised = normalise(juce::jlimit(4.0f, 30.0f, ratio), 4.0f, 30.0f);
+        return 0.88f + normalised * 0.72f;
+    }
 }
 
 void FETCompressorModule::setParameters(ParameterPointers newParameters) noexcept
@@ -95,8 +118,8 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
     mix.setTargetValue(targetMix);
     updateSidechainFilter(getParameterValue(parameters.compSidechainHpHz, 90.0f));
 
-    auto attackMs = juce::jlimit(0.02f, 2.0f, getParameterValue(parameters.compAttack, 0.45f));
-    auto releaseMs = juce::jlimit(50.0f, 1200.0f, getParameterValue(parameters.compRelease, 220.0f));
+    auto attackMs = mapAttackToAudibleFetRange(getParameterValue(parameters.compAttack, 0.45f));
+    auto releaseMs = mapReleaseToAudibleFetRange(getParameterValue(parameters.compRelease, 220.0f));
     auto thresholdDb = juce::jlimit(-60.0f, 0.0f, getParameterValue(parameters.compThresholdDb, -18.0f));
     auto gainReductionScale = 1.0f;
     auto saturationAmount = 0.0f;
@@ -128,6 +151,7 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
     const auto attackCoefficient = coefficientForTime(sampleRate, attackMs * 0.001f);
     const auto releaseCoefficient = coefficientForTime(sampleRate, releaseMs * 0.001f);
     const auto ratio = getRatio();
+    const auto ratioScale = ratioAudibilityScale(ratio);
     const auto noiseMode = getNoiseMode();
     auto blockGainReductionDb = 0.0f;
     auto blockInputPeak = 0.0f;
@@ -158,12 +182,13 @@ void FETCompressorModule::process(juce::AudioBuffer<float>& buffer)
         auto currentGainReductionDb = 0.0f;
 
         if (overDb > 0.0f)
-            currentGainReductionDb = overDb * (1.0f - 1.0f / ratio) * gainReductionScale;
+            currentGainReductionDb = overDb * (1.0f - 1.0f / ratio) * gainReductionScale * ratioScale;
 
         currentGainReductionDb = juce::jlimit(0.0f, 30.0f, currentGainReductionDb);
         blockGainReductionDb = juce::jmax(blockGainReductionDb, currentGainReductionDb);
 
-        const auto compressorGain = juce::Decibels::decibelsToGain(-currentGainReductionDb);
+        const auto autoMakeupDb = juce::jlimit(0.0f, 8.0f, currentGainReductionDb * 0.28f);
+        const auto compressorGain = juce::Decibels::decibelsToGain(-currentGainReductionDb + autoMakeupDb);
         const auto noise = getNoiseSample(noiseMode);
 
         for (auto channel = 0; channel < bufferChannels; ++channel)

@@ -16,6 +16,22 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(JUCE)
 
+juce_add_binary_data(F1DoGordoAssets
+    SOURCES
+        Assets/Wheel/sss33VOLANTE_base.png
+        Assets/Wheel/pointers/input_pointer.png
+        Assets/Wheel/pointers/output_pointer.png
+        Assets/Wheel/pointers/threshold_pointer.png
+        Assets/Wheel/pointers/ratio_pointer.png
+        Assets/Wheel/pointers/release_pointer.png
+        Assets/Wheel/pointers/attack_pointer.png
+        Assets/Wheel/pointers/gain_pointer.png
+        Assets/Wheel/pointers/midair_pointer.png
+        Assets/Wheel/pointers/highair_pointer.png
+        Assets/Wheel/pointers/feedback_pointer.png
+        Assets/Wheel/pointers/timing_pointer.png
+)
+
 juce_add_plugin(F1DoGordo
     COMPANY_NAME "Gordo Audio"
     BUNDLE_ID com.gordoaudio.f1dogordo
@@ -60,6 +76,7 @@ target_compile_definitions(F1DoGordo
 
 target_link_libraries(F1DoGordo
     PRIVATE
+        F1DoGordoAssets
         juce::juce_dsp
         juce::juce_audio_utils
     PUBLIC

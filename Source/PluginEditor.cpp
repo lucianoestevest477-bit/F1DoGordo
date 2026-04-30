@@ -11,9 +11,10 @@ F1DoGordoAudioProcessorEditor::F1DoGordoAudioProcessorEditor(F1DoGordoAudioProce
     setSize(1200, 700);
 
     addAndMakeVisible(dashboard);
-    addAndMakeVisible(topBar);
+    addChildComponent(topBar);
 
     auto& state = audioProcessor.apvts;
+    dashboard.setParameterState(state);
 
     // These controls are designed to be host-automation/controller-mapping friendly.
     // GLOBAL screen control map: INPUT/OUTPUT, CHANNEL/TONE, PUNCH, AIR, ECHO and SPACE affect audio now.
@@ -135,8 +136,7 @@ void F1DoGordoAudioProcessorEditor::resized()
 {
     auto area = getLocalBounds();
     dashboard.setBounds(area);
-    topBar.setBounds(area.removeFromTop(84).reduced(18, 6));
-    topBar.toFront(false);
+    topBar.setBounds({});
 }
 
 void F1DoGordoAudioProcessorEditor::timerCallback()
@@ -154,5 +154,6 @@ void F1DoGordoAudioProcessorEditor::timerCallback()
                               audioProcessor.apvts.getRawParameterValue(Parameters::airEnabled)->load() > 0.5f,
                               audioProcessor.apvts.getRawParameterValue(Parameters::delayEnabled)->load() > 0.5f,
                               audioProcessor.apvts.getRawParameterValue(Parameters::reverbEnabled)->load() > 0.5f);
+    dashboard.repaint();
     topBar.setCpuText("CPU --");
 }

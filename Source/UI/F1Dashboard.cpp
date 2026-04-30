@@ -1,7 +1,9 @@
 #include "F1Dashboard.h"
 #include "F1Theme.h"
+#include "BinaryData.h"
 
 #include <cmath>
+#include <limits>
 
 namespace
 {
@@ -238,6 +240,10 @@ namespace
 
 F1Dashboard::F1Dashboard()
 {
+    wheelImage = juce::ImageCache::getFromMemory(BinaryData::sss33VOLANTE_base_png,
+                                                 BinaryData::sss33VOLANTE_base_pngSize);
+    loadWheelPointerImages();
+
     for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
         addAndMakeVisible(*knob);
 
@@ -285,6 +291,7 @@ F1Dashboard::F1Dashboard()
     {
         addAndMakeVisible(*tab);
         tab->setRadioGroupId(1001, juce::dontSendNotification);
+        tab->setVisible(false);
     }
 
     tabGlobal.onClick = [this] { setPage(Page::global); };
@@ -292,15 +299,13 @@ F1Dashboard::F1Dashboard()
     tabComp.onClick = [this] { setPage(Page::comp); };
     tabAir.onClick = [this] { setPage(Page::air); };
     tabDelay.onClick = [this] { setPage(Page::delay); };
-    tabReverb.onClick = [this] { setPage(Page::reverb); };
-    tabRouting.onClick = [this] { setPage(Page::global); };
-    tabMeters.onClick = [this] { setPage(Page::global); };
+    tabRouting.onClick = [this] { setPage(Page::routing); };
+    tabMeters.onClick = [this] { setPage(Page::meters); };
 
     moduleLeds[0].setLedColour(F1Theme::green());
     moduleLeds[1].setLedColour(F1Theme::red());
     moduleLeds[2].setLedColour(F1Theme::blue());
     moduleLeds[3].setLedColour(F1Theme::amber());
-    moduleLeds[4].setLedColour(F1Theme::cyan());
 
     for (auto& led : moduleLeds)
         addAndMakeVisible(led);
@@ -313,20 +318,26 @@ F1Dashboard::F1Dashboard()
     setPage(Page::global);
 }
 
+void F1Dashboard::setParameterState(juce::AudioProcessorValueTreeState& state) noexcept
+{
+    parameterState = &state;
+}
+
 void F1Dashboard::setMeterLevels(float input, float output, float gainReduction)
 {
     inputMeter.setLevel(input);
     outputMeter.setLevel(output);
     gainReductionMeter.setLevel(gainReduction);
+    latestGainReductionDb = gainReduction * 24.0f;
 }
 
 void F1Dashboard::setModuleStates(bool channelOn, bool compOn, bool airOn, bool delayOn, bool reverbOn)
 {
+    juce::ignoreUnused(reverbOn);
     moduleLeds[0].setOn(channelOn);
     moduleLeds[1].setOn(compOn);
     moduleLeds[2].setOn(airOn);
     moduleLeds[3].setOn(delayOn);
-    moduleLeds[4].setOn(reverbOn);
 }
 
 bool F1Dashboard::isCompressorPage() const noexcept
@@ -334,8 +345,1215 @@ bool F1Dashboard::isCompressorPage() const noexcept
     return activePage == Page::comp;
 }
 
+juce::Rectangle<float> F1Dashboard::getWheelImageBounds() const
+{
+    auto area = getLocalBounds().toFloat().reduced(18.0f, 12.0f);
+
+    if (! wheelImage.isValid())
+        return area;
+
+    const auto imageWidth = static_cast<float>(wheelImage.getWidth());
+    const auto imageHeight = static_cast<float>(wheelImage.getHeight());
+    const auto scale = juce::jmin(area.getWidth() / imageWidth, area.getHeight() / imageHeight);
+
+    return juce::Rectangle<float>(imageWidth * scale, imageHeight * scale).withCentre(area.getCentre());
+}
+
+juce::Rectangle<float> F1Dashboard::getHotspotBounds(Hotspot hotspot) const
+{
+    const auto image = getWheelImageBounds();
+    const auto x = image.getX();
+    const auto y = image.getY();
+    const auto w = image.getWidth();
+    const auto h = image.getHeight();
+
+    auto rel = [&] (float rx, float ry, float rw, float rh)
+    {
+        return juce::Rectangle<float>(x + w * rx, y + h * ry, w * rw, h * rh);
+    };
+
+    for (const auto& spec : hotspotMap)
+        if (spec.hotspot == hotspot)
+            return rel(spec.x, spec.y, spec.width, spec.height);
+
+    return {};
+}
+
+juce::Rectangle<float> F1Dashboard::getWheelControlBounds(WheelControl control) const
+{
+    const auto image = getWheelImageBounds();
+    const auto x = image.getX();
+    const auto y = image.getY();
+    const auto w = image.getWidth();
+    const auto h = image.getHeight();
+
+    for (const auto& spec : wheelControlMap)
+    {
+        if (spec.control == control)
+            return { x + w * spec.x, y + h * spec.y, w * spec.width, h * spec.height };
+    }
+
+    return {};
+}
+
+bool F1Dashboard::isPointInsideWheelControl(WheelControl control, juce::Point<float> point) const
+{
+    const auto area = getWheelControlBounds(control);
+    if (area.isEmpty())
+        return false;
+
+    for (const auto& spec : wheelControlMap)
+    {
+        if (spec.control != control)
+            continue;
+
+        if (! spec.roundHitZone)
+            return area.contains(point);
+
+        const auto centre = area.getCentre();
+        const auto radiusX = area.getWidth() * 0.5f;
+        const auto radiusY = area.getHeight() * 0.5f;
+
+        if (radiusX <= 0.0f || radiusY <= 0.0f)
+            return false;
+
+        const auto normalizedX = (point.x - centre.x) / radiusX;
+        const auto normalizedY = (point.y - centre.y) / radiusY;
+        return normalizedX * normalizedX + normalizedY * normalizedY <= 1.0f;
+    }
+
+    return false;
+}
+
+juce::Rectangle<float> F1Dashboard::getControlPanelBounds() const
+{
+    auto image = getWheelImageBounds();
+    auto panel = image.withTrimmedTop(image.getHeight() * 0.17f)
+                      .withTrimmedBottom(image.getHeight() * 0.03f)
+                      .reduced(image.getWidth() * 0.13f, 0.0f);
+
+    if (activePage == Page::meters)
+        panel = image.withTrimmedLeft(image.getWidth() * 0.62f)
+                     .withTrimmedRight(image.getWidth() * 0.045f)
+                     .withTrimmedTop(image.getHeight() * 0.20f)
+                     .withTrimmedBottom(image.getHeight() * 0.08f);
+
+    return panel;
+}
+
+F1Dashboard::Hotspot F1Dashboard::findHotspot(juce::Point<float> point) const
+{
+    for (const auto& spec : hotspotMap)
+        if (getHotspotBounds(spec.hotspot).contains(point))
+            return spec.hotspot;
+
+    return Hotspot::none;
+}
+
+F1Dashboard::WheelControl F1Dashboard::findWheelControl(juce::Point<float> point) const
+{
+    for (const auto& spec : wheelControlMap)
+        if (isPointInsideWheelControl(spec.control, point))
+            return spec.control;
+
+    return WheelControl::none;
+}
+
+F1Dashboard::Page F1Dashboard::pageForHotspot(Hotspot hotspot) const
+{
+    for (const auto& spec : hotspotMap)
+        if (spec.hotspot == hotspot)
+            return spec.page;
+
+    return Page::global;
+}
+
+F1Dashboard::Hotspot F1Dashboard::hotspotForPage(Page page) const
+{
+    for (const auto& spec : hotspotMap)
+        if (spec.page == page)
+            return spec.hotspot;
+
+    return Hotspot::global;
+}
+
+juce::String F1Dashboard::getHotspotLabel(Hotspot hotspot) const
+{
+    for (const auto& spec : hotspotMap)
+        if (spec.hotspot == hotspot)
+            return spec.label;
+
+    return {};
+}
+
+juce::Colour F1Dashboard::getHotspotColour(Hotspot hotspot) const
+{
+    switch (hotspot)
+    {
+        case Hotspot::global:  return F1Theme::green();
+        case Hotspot::channel: return F1Theme::green();
+        case Hotspot::comp:    return F1Theme::red();
+        case Hotspot::air:     return F1Theme::blue();
+        case Hotspot::delay:   return F1Theme::amber();
+        case Hotspot::routing: return F1Theme::cyan();
+        case Hotspot::meters:  return F1Theme::violet();
+        case Hotspot::none:    break;
+    }
+
+    return F1Theme::cyan();
+}
+
+juce::String F1Dashboard::getWheelControlLabel(WheelControl control) const
+{
+    if (const auto* zone = getWheelControlZone(control))
+        return zone->label;
+
+    return {};
+}
+
+const F1Dashboard::WheelControlZone* F1Dashboard::getWheelControlZone(WheelControl control) const
+{
+    for (const auto& spec : wheelControlMap)
+        if (spec.control == control)
+            return &spec;
+
+    return nullptr;
+}
+
+juce::Colour F1Dashboard::getWheelControlColour(WheelControl control) const
+{
+    switch (control)
+    {
+        case WheelControl::input:
+        case WheelControl::threshold:
+        case WheelControl::midAir:
+        case WheelControl::highAir:
+            return F1Theme::green();
+
+        case WheelControl::output:
+        case WheelControl::ratio:
+        case WheelControl::gain:
+            return F1Theme::amber();
+
+        case WheelControl::release:
+        case WheelControl::attack:
+            return F1Theme::blue();
+
+        case WheelControl::feedback:
+        case WheelControl::timing:
+            return F1Theme::violet();
+
+        case WheelControl::bypass:
+            return F1Theme::red();
+
+        case WheelControl::compEnabled:
+            return F1Theme::red();
+
+        case WheelControl::airEnabled:
+            return F1Theme::green();
+
+        case WheelControl::delayEnabled:
+            return F1Theme::violet();
+
+        case WheelControl::ab:
+        case WheelControl::save:
+            return F1Theme::cyan();
+
+        case WheelControl::none:
+            break;
+    }
+
+    return F1Theme::cyan();
+}
+
+F1Dashboard::WheelControlKind F1Dashboard::getWheelControlKind(WheelControl control) const
+{
+    if (const auto* zone = getWheelControlZone(control))
+        return zone->kind;
+
+    return WheelControlKind::placeholder;
+}
+
+GordoKnob* F1Dashboard::getKnobForWheelControl(WheelControl control) noexcept
+{
+    switch (control)
+    {
+        case WheelControl::input:     return &inputGain;
+        case WheelControl::output:    return &outputGain;
+        case WheelControl::threshold: return &compThreshold;
+        case WheelControl::ratio:     return &compRatio;
+        case WheelControl::release:   return &compRelease;
+        case WheelControl::attack:    return &compAttack;
+        case WheelControl::gain:      return &compOutput;
+        case WheelControl::midAir:    return &airMidAir;
+        case WheelControl::highAir:   return &airHighAir;
+        case WheelControl::feedback:  return &delayFeedback;
+        case WheelControl::timing:    return &delayDivision;
+        case WheelControl::none:
+        case WheelControl::bypass:
+        case WheelControl::compEnabled:
+        case WheelControl::airEnabled:
+        case WheelControl::delayEnabled:
+        case WheelControl::ab:
+        case WheelControl::save:
+            break;
+    }
+
+    return nullptr;
+}
+
+GordoButton* F1Dashboard::getButtonForWheelControl(WheelControl control) noexcept
+{
+    if (control == WheelControl::bypass)
+        return &globalBypass;
+
+    return nullptr;
+}
+
+juce::RangedAudioParameter* F1Dashboard::getParameterById(const juce::String& parameterId) const
+{
+    if (parameterState == nullptr)
+    {
+        DBG("Wheel UI mapping: APVTS pointer is null for " + parameterId);
+        return nullptr;
+    }
+
+    if (parameterId.isEmpty())
+        return nullptr;
+
+    if (auto* parameter = parameterState->getParameter(parameterId))
+        return parameter;
+
+    DBG("Wheel UI mapping: parameter not found: " + parameterId);
+    return nullptr;
+}
+
+float F1Dashboard::getParameterNormalizedById(const juce::String& parameterId) const
+{
+    if (auto* parameter = getParameterById(parameterId))
+        return parameter->getValue();
+
+    return 0.0f;
+}
+
+float F1Dashboard::getParameterRawValueById(const juce::String& parameterId) const
+{
+    if (parameterState == nullptr || parameterId.isEmpty())
+        return 0.0f;
+
+    if (auto* value = parameterState->getRawParameterValue(parameterId))
+        return value->load();
+
+    DBG("Wheel UI mapping: raw APVTS parameter not found: " + parameterId);
+    return 0.0f;
+}
+
+juce::RangedAudioParameter* F1Dashboard::getWheelParameter(WheelControl control) const
+{
+    const auto parameterId = getWheelParameterId(control);
+    auto* parameter = getParameterById(parameterId);
+
+    if (parameter == nullptr && parameterId.isNotEmpty())
+    {
+        DBG("Wheel UI mapping: parameter lookup failed for " + getWheelControlLabel(control));
+    }
+
+    return parameter;
+}
+
+juce::String F1Dashboard::getWheelParameterId(WheelControl control) const
+{
+    if (const auto* zone = getWheelControlZone(control))
+        return zone->parameterId;
+
+    return {};
+}
+
+float F1Dashboard::getWheelParameterNormalized(WheelControl control) const
+{
+    if (auto* parameter = getWheelParameter(control))
+        return parameter->getValue();
+
+    return 0.0f;
+}
+
+int F1Dashboard::getWheelChoiceIndex(WheelControl control) const
+{
+    if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(getWheelParameter(control)))
+        return choice->getIndex();
+
+    if (auto* parameter = getWheelParameter(control))
+        return juce::roundToInt(parameter->convertFrom0to1(parameter->getValue()));
+
+    return 0;
+}
+
+int F1Dashboard::getWheelChoiceCount(WheelControl control) const
+{
+    if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(getWheelParameter(control)))
+        return choice->choices.size();
+
+    if (auto* parameter = getWheelParameter(control))
+        return juce::roundToInt(parameter->convertFrom0to1(1.0f)) + 1;
+
+    return 0;
+}
+
+void F1Dashboard::beginWheelParameterGesture(WheelControl control)
+{
+    activeWheelParameter = getWheelParameter(control);
+    if (activeWheelParameter != nullptr)
+        activeWheelParameter->beginChangeGesture();
+}
+
+void F1Dashboard::setWheelParameterNormalized(WheelControl control, float normalizedValue)
+{
+    auto* parameter = getWheelParameter(control);
+    if (parameter == nullptr)
+        return;
+
+    const auto oldValue = parameter->getValue();
+    const auto newValue = juce::jlimit(0.0f, 1.0f, normalizedValue);
+    parameter->setValueNotifyingHost(newValue);
+    logWheelFunctionalMapping(control, oldValue, newValue);
+
+    if (control == WheelControl::midAir || control == WheelControl::highAir)
+        showAudibleStatusTooltip(control, getAirWheelDiagnosticText(control));
+}
+
+void F1Dashboard::setWheelChoiceIndex(WheelControl control, int index)
+{
+    auto* parameter = getWheelParameter(control);
+    if (parameter == nullptr)
+        return;
+
+    const auto count = getWheelChoiceCount(control);
+    if (count <= 0)
+        return;
+
+    const auto oldValue = parameter->getValue();
+    const auto safeIndex = juce::jlimit(0, count - 1, index);
+    const auto newValue = [parameter, safeIndex]
+    {
+        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(parameter))
+            return choice->convertTo0to1(static_cast<float>(safeIndex));
+
+        return parameter->convertTo0to1(static_cast<float>(safeIndex));
+    }();
+
+    parameter->setValueNotifyingHost(newValue);
+    logWheelFunctionalMapping(control, oldValue, newValue);
+}
+
+void F1Dashboard::endWheelParameterGesture()
+{
+    if (activeWheelParameter != nullptr)
+    {
+        activeWheelParameter->endChangeGesture();
+        activeWheelParameter = nullptr;
+    }
+}
+
+void F1Dashboard::logWheelFunctionalMapping(WheelControl control, float oldNormalized, float newNormalized)
+{
+    if constexpr (! debugWheelFunctionalMapping)
+    {
+        juce::ignoreUnused(control, oldNormalized, newNormalized);
+    }
+    else
+    {
+        const auto label = getWheelControlLabel(control);
+        const auto parameterId = getWheelParameterId(control);
+        auto* parameter = getWheelParameter(control);
+        const auto oldActual = parameter != nullptr ? parameter->convertFrom0to1(oldNormalized) : 0.0f;
+        const auto newActual = parameter != nullptr ? parameter->convertFrom0to1(newNormalized) : 0.0f;
+        juce::ignoreUnused(oldActual, newActual);
+        auto getModuleEnabledId = [] (WheelControl wheelControl) -> juce::String
+        {
+            switch (wheelControl)
+            {
+                case WheelControl::threshold:
+                case WheelControl::ratio:
+                case WheelControl::release:
+                case WheelControl::attack:
+                case WheelControl::gain:
+                case WheelControl::compEnabled:
+                    return "compEnabled";
+
+                case WheelControl::midAir:
+                case WheelControl::highAir:
+                case WheelControl::airEnabled:
+                    return "airEnabled";
+
+                case WheelControl::feedback:
+                case WheelControl::timing:
+                case WheelControl::delayEnabled:
+                    return "delayEnabled";
+
+                default:
+                    return {};
+            }
+        };
+
+        auto getModuleMixSendId = [] (WheelControl wheelControl) -> juce::String
+        {
+            switch (wheelControl)
+            {
+                case WheelControl::threshold:
+                case WheelControl::ratio:
+                case WheelControl::release:
+                case WheelControl::attack:
+                case WheelControl::gain:
+                case WheelControl::compEnabled:
+                    return "compMix";
+
+                case WheelControl::midAir:
+                case WheelControl::highAir:
+                case WheelControl::airEnabled:
+                    return "airMix";
+
+                case WheelControl::feedback:
+                case WheelControl::timing:
+                case WheelControl::delayEnabled:
+                    return "delaySend";
+
+                default:
+                    return {};
+            }
+        };
+
+        const auto moduleEnabledId = getModuleEnabledId(control);
+        const auto mixSendId = getModuleMixSendId(control);
+        const auto moduleEnabledText = moduleEnabledId.isNotEmpty()
+                                     ? moduleEnabledId + "=" + (getParameterNormalizedById(moduleEnabledId) >= 0.5f ? "ON" : "OFF")
+                                     : juce::String("module=n/a");
+        const auto mixSendText = mixSendId.isNotEmpty()
+                               ? mixSendId + "=" + juce::String(getParameterNormalizedById(mixSendId) * 100.0f, 1) + "%"
+                               : juce::String("mixSend=n/a");
+        const auto rawText = "rawAfter=" + juce::String(getParameterRawValueById(parameterId), 4);
+        const auto valueText = [parameter] (float normalized)
+        {
+            if (parameter == nullptr)
+                return juce::String("n/a");
+
+            const auto text = parameter->getText(normalized, 48);
+            if (text.isNotEmpty())
+                return text;
+
+            return juce::String(parameter->convertFrom0to1(normalized), 4);
+        };
+        const auto moduleStateValue = moduleEnabledId.isNotEmpty()
+                                    ? (getParameterNormalizedById(moduleEnabledId) >= 0.5f ? "ON" : "OFF")
+                                    : juce::String("n/a");
+        const auto mixSendValue = mixSendId.isNotEmpty()
+                                ? juce::String(juce::roundToInt(getParameterNormalizedById(mixSendId) * 100.0f)) + "%"
+                                : juce::String("n/a");
+        const auto foundText = parameter != nullptr ? "PARAMETER FOUND" : "PARAMETER MISSING";
+        auto mapCompressorAttackMs = [] (float attackMs)
+        {
+            const auto normalised = juce::jlimit(0.0f, 1.0f, (attackMs - 0.02f) / (2.0f - 0.02f));
+            return 0.05f + std::pow(normalised, 1.35f) * 34.95f;
+        };
+        auto mapCompressorReleaseMs = [] (float releaseMs)
+        {
+            const auto normalised = juce::jlimit(0.0f, 1.0f, (releaseMs - 50.0f) / (1200.0f - 50.0f));
+            return 35.0f + std::pow(normalised, 1.12f) * 1565.0f;
+        };
+        const auto airMidValue = juce::jlimit(0.0f, 1.0f, getParameterRawValueById("airMidAir"));
+        const auto airHighValue = juce::jlimit(0.0f, 1.0f, getParameterRawValueById("airHighAir"));
+        const auto airMidIntensity = std::pow(airMidValue, 0.72f);
+        const auto airHighIntensity = std::pow(airHighValue, 0.72f);
+        const auto airDemand = juce::jlimit(0.0f, 1.0f, juce::jmax(airMidIntensity, airHighIntensity));
+        const auto airAmount = juce::jlimit(0.0f, 1.0f, getParameterRawValueById("airAmount"));
+        const auto airDensityValue = juce::jlimit(0.0f, 1.0f, getParameterRawValueById("airDensity"));
+        const auto airColourAmount = 0.35f + airAmount * 0.65f;
+        const auto airEffectiveDensity = juce::jlimit(0.0f, 1.0f, juce::jmax(airDensityValue, airDemand * 0.35f));
+        const auto effectiveMidAir = airMidIntensity * (0.70f + airColourAmount * 0.72f + airEffectiveDensity * 0.42f);
+        const auto effectiveHighAir = airHighIntensity * (0.90f + airColourAmount * 0.92f + airEffectiveDensity * 0.48f);
+        const auto compressorBridgeText = " compEnabled=" + juce::String(getParameterRawValueById("compEnabled"), 1)
+                                        + " compMix=" + juce::String(getParameterRawValueById("compMix") * 100.0f, 1) + "%"
+                                        + " compThresholdDb=" + juce::String(getParameterRawValueById("compThresholdDb"), 2)
+                                        + " compGainDb=" + juce::String(getParameterRawValueById("compOutputDb"), 2)
+                                        + " compRatioIndex=" + juce::String(getParameterRawValueById("compRatio"), 1)
+                                        + " compRatioReal=" + juce::String([this]
+                                          {
+                                              switch (juce::jlimit(0, 4, juce::roundToInt(getParameterRawValueById("compRatio"))))
+                                              {
+                                                  case 1: return 8.0f;
+                                                  case 2: return 12.0f;
+                                                  case 3: return 20.0f;
+                                                  case 4: return 30.0f;
+                                                  default: return 4.0f;
+                                              }
+                                          }(), 1)
+                                        + " compAttackMs=" + juce::String(getParameterRawValueById("compAttack"), 4)
+                                        + " compAttackEffectiveMs=" + juce::String(mapCompressorAttackMs(getParameterRawValueById("compAttack")), 2)
+                                        + " compReleaseMs=" + juce::String(getParameterRawValueById("compRelease"), 2)
+                                        + " compReleaseEffectiveMs=" + juce::String(mapCompressorReleaseMs(getParameterRawValueById("compRelease")), 1)
+                                        + " compGRApproxDb=" + juce::String(latestGainReductionDb, 2);
+        const auto airBridgeText = " airEnabled=" + juce::String(getParameterRawValueById("airEnabled"), 1)
+                                 + " airMix=" + juce::String(getParameterRawValueById("airMix") * 100.0f, 1) + "%"
+                                 + " airAmount=" + juce::String(getParameterRawValueById("airAmount") * 100.0f, 1) + "%"
+                                 + " airDrive=" + juce::String(getParameterRawValueById("airDrive") * 100.0f, 1) + "%"
+                                 + " airMidAir=" + juce::String(getParameterRawValueById("airMidAir") * 100.0f, 1) + "%"
+                                 + " airHighAir=" + juce::String(getParameterRawValueById("airHighAir") * 100.0f, 1) + "%"
+                                 + " effectiveMidAir=" + juce::String(effectiveMidAir * 100.0f, 1) + "%"
+                                 + " effectiveHighAir=" + juce::String(effectiveHighAir * 100.0f, 1) + "%";
+
+        debugOverlayText = label + " -> " + (parameterId.isNotEmpty() ? parameterId : juce::String("(none)")) + "\n"
+                         + "old: " + valueText(oldNormalized) + "  new: " + valueText(newNormalized) + "\n"
+                         + "module: " + moduleStateValue + "  mix/send: " + mixSendValue + "\n"
+                         + foundText;
+        debugOverlayUntilMs = juce::Time::getMillisecondCounter() + 3600u;
+
+        DBG("Wheel UI mapping: " + label
+            + " -> " + parameterId
+            + " oldNorm=" + juce::String(oldNormalized, 4)
+            + " newNorm=" + juce::String(newNormalized, 4)
+            + " oldValue=" + juce::String(oldActual, 4)
+            + " newValue=" + juce::String(newActual, 4)
+            + " text=" + getWheelControlValueText(control)
+            + " found=" + (parameter != nullptr ? "yes" : "no")
+            + " " + rawText
+            + " " + moduleEnabledText
+            + " " + mixSendText
+            + compressorBridgeText
+            + airBridgeText);
+    }
+}
+
+void F1Dashboard::beginWheelControlDrag(WheelControl control, juce::Point<float> position)
+{
+    activeWheelControl = control;
+    dragStartPosition = position;
+    makeOwningModuleAudibleForControl(control);
+    ensureAirAudibleForWheelTest(control, true);
+    dragStartNormalized = getWheelParameterNormalized(control);
+    dragStartChoiceIndex = getWheelChoiceIndex(control);
+    beginWheelParameterGesture(control);
+
+    showWheelControlTooltip(control);
+    repaint();
+}
+
+void F1Dashboard::dragWheelControl(juce::Point<float> position)
+{
+    if (getWheelParameter(activeWheelControl) == nullptr)
+        return;
+
+    makeOwningModuleAudibleForControl(activeWheelControl);
+
+    const auto movement = static_cast<double>((dragStartPosition.y - position.y) + (position.x - dragStartPosition.x) * 0.35f);
+    const auto kind = getWheelControlKind(activeWheelControl);
+
+    if (kind == WheelControlKind::timing)
+    {
+        const auto steps = static_cast<int>(std::round(movement / 42.0));
+        setTimingStepIndex(getTimingStepIndex(dragStartNormalized) + steps);
+        showWheelControlTooltip(activeWheelControl);
+        repaint();
+        return;
+    }
+
+    if (kind == WheelControlKind::stepped)
+    {
+        const auto count = getWheelChoiceCount(activeWheelControl);
+        const auto steps = static_cast<int>(std::round(movement / 42.0));
+        if (count > 0)
+            setWheelChoiceIndex(activeWheelControl, dragStartChoiceIndex + steps);
+    }
+    else
+    {
+        const auto value = dragStartNormalized + static_cast<float>(movement / 260.0);
+        setWheelParameterNormalized(activeWheelControl, value);
+    }
+
+    showWheelControlTooltip(activeWheelControl);
+    repaint();
+}
+
+void F1Dashboard::endWheelControlDrag()
+{
+    endWheelParameterGesture();
+    activeWheelControl = WheelControl::none;
+    setMouseCursor(hoveredWheelControl == WheelControl::none ? juce::MouseCursor::NormalCursor
+                                                             : juce::MouseCursor::PointingHandCursor);
+    repaint();
+}
+
+void F1Dashboard::incrementWheelControl(WheelControl control, int direction)
+{
+    if (control == WheelControl::none)
+        return;
+
+    if (getWheelControlKind(control) == WheelControlKind::timing)
+    {
+        cycleTiming(direction);
+        return;
+    }
+
+    if (getWheelControlKind(control) == WheelControlKind::toggle)
+    {
+        toggleWheelControl(control);
+        return;
+    }
+
+    if (getWheelControlKind(control) == WheelControlKind::placeholder)
+    {
+        showWheelControlTooltip(control);
+        repaint();
+        return;
+    }
+
+    auto* parameter = getWheelParameter(control);
+    if (parameter == nullptr)
+        return;
+
+    makeOwningModuleAudibleForControl(control);
+    ensureAirAudibleForWheelTest(control, true);
+
+    parameter->beginChangeGesture();
+    if (getWheelControlKind(control) == WheelControlKind::stepped)
+        setWheelChoiceIndex(control, getWheelChoiceIndex(control) + direction);
+    else
+        setWheelParameterNormalized(control, parameter->getValue() + static_cast<float>(direction) * 0.025f);
+    parameter->endChangeGesture();
+
+    showWheelControlTooltip(control);
+    repaint();
+}
+
+int F1Dashboard::getTimingStepIndex(double normalizedValue) const
+{
+    auto* parameter = getWheelParameter(WheelControl::timing);
+    if (parameter == nullptr)
+        return 0;
+
+    const auto actualValue = parameter->convertFrom0to1(static_cast<float>(normalizedValue));
+    constexpr std::array<double, 4> timingValues { 0.0, 1.0, 3.0, 4.0 };
+    auto currentIndex = 0;
+    auto bestDistance = std::numeric_limits<double>::max();
+
+    for (auto i = 0; i < static_cast<int>(timingValues.size()); ++i)
+    {
+        const auto distance = std::abs(actualValue - timingValues[static_cast<size_t>(i)]);
+        if (distance < bestDistance)
+        {
+            bestDistance = distance;
+            currentIndex = i;
+        }
+    }
+
+    return currentIndex;
+}
+
+void F1Dashboard::setTimingStepIndex(int index)
+{
+    if (getWheelParameter(WheelControl::timing) == nullptr)
+        return;
+
+    constexpr std::array<double, 4> timingValues { 0.0, 1.0, 3.0, 4.0 };
+    const auto safeIndex = juce::jlimit(0, static_cast<int>(timingValues.size()) - 1, index);
+    setWheelChoiceIndex(WheelControl::timing, juce::roundToInt(timingValues[static_cast<size_t>(safeIndex)]));
+}
+
+void F1Dashboard::cycleTiming(int direction)
+{
+    auto* parameter = getWheelParameter(WheelControl::timing);
+    if (parameter == nullptr)
+        return;
+
+    const auto stepCount = 4;
+    const auto nextIndex = (getTimingStepIndex(parameter->getValue()) + (direction >= 0 ? 1 : -1) + stepCount) % stepCount;
+    parameter->beginChangeGesture();
+    setTimingStepIndex(nextIndex);
+    parameter->endChangeGesture();
+    showWheelControlTooltip(WheelControl::timing);
+    repaint();
+}
+
+void F1Dashboard::setParameterNormalizedById(const juce::String& parameterId,
+                                             float normalizedValue,
+                                             const juce::String& labelForDebug)
+{
+    auto* parameter = getParameterById(parameterId);
+    if (parameter == nullptr)
+        return;
+
+    const auto oldValue = parameter->getValue();
+    const auto newValue = juce::jlimit(0.0f, 1.0f, normalizedValue);
+
+    if (std::abs(oldValue - newValue) <= 0.0001f)
+    {
+        if constexpr (debugWheelFunctionalMapping)
+        {
+            DBG("Wheel UI mapping: " + labelForDebug
+                + " -> " + parameterId
+                + " unchangedNorm=" + juce::String(newValue, 4)
+                + " rawAfter=" + juce::String(getParameterRawValueById(parameterId), 4)
+                + " found=yes");
+        }
+
+        return;
+    }
+
+    parameter->beginChangeGesture();
+    parameter->setValueNotifyingHost(newValue);
+    parameter->endChangeGesture();
+
+    if constexpr (debugWheelFunctionalMapping)
+    {
+        DBG("Wheel UI mapping: " + labelForDebug
+            + " -> " + parameterId
+            + " oldNorm=" + juce::String(oldValue, 4)
+            + " newNorm=" + juce::String(newValue, 4)
+            + " rawAfter=" + juce::String(getParameterRawValueById(parameterId), 4)
+            + " found=yes");
+    }
+    else
+    {
+        juce::ignoreUnused(labelForDebug, oldValue);
+    }
+}
+
+void F1Dashboard::makeModuleAudibleIfNeeded(WheelControl control)
+{
+    struct AudibleAmount
+    {
+        WheelControl control;
+        const char* parameterId;
+        float targetNormalized;
+        const char* label;
+    };
+
+    static constexpr std::array<AudibleAmount, 3> audibleAmounts {{
+        { WheelControl::compEnabled,  "compMix",   1.00f, "COMP auto MIX"  },
+        { WheelControl::airEnabled,   "airMix",    1.00f, "AIR auto MIX"   },
+        { WheelControl::delayEnabled, "delaySend", 0.35f, "DELAY auto SEND" }
+    }};
+
+    for (const auto& amount : audibleAmounts)
+    {
+        if (amount.control != control)
+            continue;
+
+        if (auto* parameter = getParameterById(amount.parameterId))
+        {
+            if (parameter->getValue() <= 0.0001f)
+                setParameterNormalizedById(amount.parameterId, amount.targetNormalized, amount.label);
+        }
+
+        if (control == WheelControl::airEnabled
+            && getParameterRawValueById("airAmount") <= 0.0001f)
+        {
+            setParameterNormalizedById("airAmount", 1.0f, "AIR auto AMOUNT");
+        }
+
+        if (control == WheelControl::airEnabled
+            && getParameterRawValueById("airDrive") <= 0.0001f)
+        {
+            setParameterNormalizedById("airDrive", 0.5f, "AIR auto INTENSITY");
+        }
+
+        return;
+    }
+}
+
+void F1Dashboard::makeOwningModuleAudibleForControl(WheelControl control)
+{
+    switch (control)
+    {
+        case WheelControl::ratio:
+        case WheelControl::release:
+        case WheelControl::attack:
+        {
+            const auto needsEnable = getParameterNormalizedById("compEnabled") < 0.5f;
+            const auto needsMix = getParameterNormalizedById("compMix") <= 0.0001f;
+            const auto needsThreshold = getParameterRawValueById("compThresholdDb") > -18.0f;
+
+            setParameterNormalizedById("compEnabled", 1.0f, "COMP auto ENABLE");
+            makeModuleAudibleIfNeeded(WheelControl::compEnabled);
+            if (needsThreshold)
+            {
+                if (auto* threshold = getParameterById("compThresholdDb"))
+                    setParameterNormalizedById("compThresholdDb",
+                                               threshold->convertTo0to1(-24.0f),
+                                               "COMP auto THRESHOLD");
+            }
+
+            if (needsEnable || needsMix || needsThreshold)
+            {
+                showAudibleStatusTooltip(control,
+                                         "COMP ACTIVE / THRESHOLD "
+                                             + juce::String(getParameterRawValueById("compThresholdDb"), 0)
+                                             + " dB");
+            }
+            return;
+        }
+
+        case WheelControl::midAir:
+        case WheelControl::highAir:
+            ensureAirAudibleForWheelTest(control, false);
+            return;
+
+        default:
+            break;
+    }
+}
+
+void F1Dashboard::ensureAirAudibleForWheelTest(WheelControl control, bool primeControlledValue)
+{
+    if (control != WheelControl::midAir && control != WheelControl::highAir)
+        return;
+
+    setParameterNormalizedById("airEnabled", 1.0f, "AIR test ENABLE");
+    setParameterNormalizedById("airMix", 1.0f, "AIR test MIX");
+    setParameterNormalizedById("airAmount", 1.0f, "AIR test AMOUNT");
+
+    if (getParameterRawValueById("airDrive") <= 0.0001f)
+        setParameterNormalizedById("airDrive", 0.5f, "AIR test INTENSITY");
+
+    if (primeControlledValue && getWheelParameterNormalized(control) <= 0.0001f)
+    {
+        if (auto* parameter = getWheelParameter(control))
+        {
+            parameter->beginChangeGesture();
+            setWheelParameterNormalized(control, 0.75f);
+            parameter->endChangeGesture();
+        }
+    }
+
+    showAudibleStatusTooltip(control, getAirWheelDiagnosticText(control));
+}
+
+void F1Dashboard::toggleWheelControl(WheelControl control)
+{
+    auto* parameter = getWheelParameter(control);
+    if (parameter == nullptr)
+        return;
+
+    const auto turningOn = parameter->getValue() < 0.5f;
+
+    parameter->beginChangeGesture();
+    setWheelParameterNormalized(control, turningOn ? 1.0f : 0.0f);
+    parameter->endChangeGesture();
+
+    if (turningOn)
+        makeModuleAudibleIfNeeded(control);
+
+    showWheelControlTooltip(control);
+    repaint();
+}
+
+void F1Dashboard::showWheelControlTooltip(WheelControl control)
+{
+    if (control == WheelControl::none)
+        return;
+
+    tooltipUntilMs = juce::Time::getMillisecondCounter() + 1600u;
+}
+
+void F1Dashboard::showAudibleStatusTooltip(WheelControl control, const juce::String& text)
+{
+    if (control == WheelControl::none)
+        return;
+
+    audibleStatusControl = control;
+    audibleStatusTooltip = text;
+    audibleStatusTooltipUntilMs = juce::Time::getMillisecondCounter() + 1600u;
+    tooltipUntilMs = audibleStatusTooltipUntilMs;
+}
+
+juce::String F1Dashboard::getWheelControlValueText(WheelControl control) const
+{
+    if (control == WheelControl::ab || control == WheelControl::save)
+        return "PLACEHOLDER";
+
+    if (control == WheelControl::bypass)
+        return getWheelParameterNormalized(control) >= 0.5f ? "ON" : "OFF";
+
+    if (control == WheelControl::compEnabled || control == WheelControl::airEnabled || control == WheelControl::delayEnabled)
+        return getModuleAudibleStateText(control);
+
+    if (control == WheelControl::midAir || control == WheelControl::highAir)
+        return getAirWheelDiagnosticText(control);
+
+    if (control == WheelControl::ratio)
+    {
+        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(getWheelParameter(control)))
+        {
+            const auto index = juce::jlimit(0, choice->choices.size() - 1, choice->getIndex());
+            return choice->choices[index];
+        }
+    }
+
+    if (control == WheelControl::timing)
+    {
+        if (auto* parameter = getWheelParameter(control))
+        {
+            const auto value = juce::roundToInt(parameter->convertFrom0to1(parameter->getValue()));
+            if (value == 0) return "1/4";
+            if (value == 1) return "1/8";
+            if (value == 3) return "1/12";
+            if (value == 4) return "1/16";
+            return parameter->getCurrentValueAsText();
+        }
+    }
+
+    if (auto* parameter = getWheelParameter(control))
+        return parameter->getCurrentValueAsText();
+
+    return {};
+}
+
+juce::String F1Dashboard::getAirWheelDiagnosticText(WheelControl control) const
+{
+    if (control != WheelControl::midAir && control != WheelControl::highAir)
+        return {};
+
+    const auto controlPercent = juce::roundToInt(getWheelParameterNormalized(control) * 100.0f);
+    const auto airOn = getParameterNormalizedById("airEnabled") >= 0.5f ? "AIR ON" : "AIR OFF";
+    const auto airMixPercent = juce::roundToInt(getParameterNormalizedById("airMix") * 100.0f);
+    const auto airAmountPercent = juce::roundToInt(getParameterRawValueById("airAmount") * 100.0f);
+    const auto airDrivePercent = juce::roundToInt(getParameterRawValueById("airDrive") * 100.0f);
+
+    return getWheelControlLabel(control) + " " + juce::String(controlPercent) + "%"
+        + " / " + airOn
+        + " / MIX " + juce::String(airMixPercent) + "%"
+        + " / AMOUNT " + juce::String(airAmountPercent) + "%"
+        + " / DRIVE " + juce::String(airDrivePercent) + "%";
+}
+
+juce::String F1Dashboard::getModuleAudibleStateText(WheelControl control) const
+{
+    if (parameterState == nullptr || getWheelParameterNormalized(control) < 0.5f)
+        return "OFF";
+
+    auto getPercentValue = [this] (const juce::String& parameterId)
+    {
+        if (auto* parameter = getParameterById(parameterId))
+            return juce::roundToInt(parameter->convertFrom0to1(parameter->getValue()) * 100.0f);
+
+        DBG("Wheel UI mapping: module mix/send parameter not found: " + parameterId);
+        return 0;
+    };
+
+    if (control == WheelControl::compEnabled)
+        return "ON / MIX " + juce::String(getPercentValue("compMix")) + "%";
+
+    if (control == WheelControl::airEnabled)
+        return "ON / MIX " + juce::String(getPercentValue("airMix")) + "%";
+
+    if (control == WheelControl::delayEnabled)
+        return "ON / SEND " + juce::String(getPercentValue("delaySend")) + "%";
+
+    return "ON";
+}
+
+void F1Dashboard::loadWheelPointerImages()
+{
+    auto imageFromMemory = [] (const void* data, int size)
+    {
+        return juce::ImageCache::getFromMemory(data, size);
+    };
+
+    wheelPointers = {{
+        { WheelControl::input,     "input",     "inputGainDb",       imageFromMemory(BinaryData::input_pointer_png,     BinaryData::input_pointer_pngSize),     { 0.234f, 0.090f }, { 0.207f, 0.050f, 0.054f, 0.080f }, -135.0f,  135.0f, false },
+        { WheelControl::output,    "output",    "outputGainDb",      imageFromMemory(BinaryData::output_pointer_png,    BinaryData::output_pointer_pngSize),    { 0.763f, 0.090f }, { 0.736f, 0.050f, 0.054f, 0.080f }, -135.0f,  135.0f, false },
+        { WheelControl::threshold, "threshold", "compThresholdDb",   imageFromMemory(BinaryData::threshold_pointer_png, BinaryData::threshold_pointer_pngSize), { 0.382f, 0.468f }, { 0.348f, 0.365f, 0.068f, 0.160f }, -135.0f,  135.0f, false },
+        { WheelControl::ratio,     "ratio",     "compRatio",         imageFromMemory(BinaryData::ratio_pointer_png,     BinaryData::ratio_pointer_pngSize),     { 0.442f, 0.266f }, { 0.408f, 0.190f, 0.068f, 0.150f }, -135.0f,  135.0f, true  },
+        { WheelControl::release,   "release",   "compRelease",       imageFromMemory(BinaryData::release_pointer_png,   BinaryData::release_pointer_pngSize),   { 0.562f, 0.270f }, { 0.530f, 0.193f, 0.064f, 0.150f }, -120.0f,  150.0f, false },
+        { WheelControl::attack,    "attack",    "compAttack",        imageFromMemory(BinaryData::attack_pointer_png,    BinaryData::attack_pointer_pngSize),    { 0.616f, 0.470f }, { 0.586f, 0.390f, 0.060f, 0.150f }, -125.0f,  145.0f, false },
+        { WheelControl::gain,      "gain",      "compOutputDb",      imageFromMemory(BinaryData::gain_pointer_png,      BinaryData::gain_pointer_pngSize),      { 0.500f, 0.681f }, { 0.466f, 0.596f, 0.068f, 0.170f }, -135.0f,  135.0f, false },
+        { WheelControl::midAir,    "midair",    "airMidAir",         imageFromMemory(BinaryData::midair_pointer_png,    BinaryData::midair_pointer_pngSize),    { 0.293f, 0.586f }, { 0.276f, 0.535f, 0.034f, 0.102f }, -135.0f,  135.0f, false },
+        { WheelControl::highAir,   "highair",   "airHighAir",        imageFromMemory(BinaryData::highair_pointer_png,   BinaryData::highair_pointer_pngSize),   { 0.293f, 0.686f }, { 0.276f, 0.635f, 0.034f, 0.102f }, -135.0f,  135.0f, false },
+        { WheelControl::feedback,  "feedback",  "delayFeedback",     imageFromMemory(BinaryData::feedback_pointer_png,  BinaryData::feedback_pointer_pngSize),  { 0.710f, 0.551f }, { 0.692f, 0.500f, 0.036f, 0.102f }, -135.0f,  135.0f, false },
+        { WheelControl::timing,    "timing",    "delayNoteDivision", imageFromMemory(BinaryData::timing_pointer_png,    BinaryData::timing_pointer_pngSize),    { 0.710f, 0.687f }, { 0.692f, 0.636f, 0.036f, 0.102f },  -90.0f,  180.0f, true  }
+    }};
+}
+
+float F1Dashboard::getWheelPointerAngleDegrees(const WheelPointer& pointer)
+{
+    if (pointer.control == WheelControl::timing)
+    {
+        if (auto* parameter = getWheelParameter(pointer.control))
+        {
+            const auto value = juce::roundToInt(parameter->convertFrom0to1(parameter->getValue()));
+            if (value == 0) return -90.0f;  // 1/4
+            if (value == 1) return   0.0f;  // 1/8
+            if (value == 3) return  90.0f;  // 1/12 via 1/8T
+            if (value == 4) return 180.0f;  // 1/16
+        }
+
+        return 0.0f;
+    }
+
+    auto* parameter = getWheelParameter(pointer.control);
+    if (parameter == nullptr)
+        return 0.0f;
+
+    auto proportion = parameter->getValue();
+
+    return juce::jmap(proportion, pointer.minAngleDegrees, pointer.maxAngleDegrees);
+}
+
+void F1Dashboard::paintWheelPointers(juce::Graphics& g, juce::Rectangle<float> imageBounds)
+{
+    for (auto& pointer : wheelPointers)
+    {
+        if (! pointer.image.isValid())
+            continue;
+
+        const auto bounds = juce::Rectangle<float>(imageBounds.getX() + imageBounds.getWidth() * pointer.drawBoundsNormalized.getX(),
+                                                   imageBounds.getY() + imageBounds.getHeight() * pointer.drawBoundsNormalized.getY(),
+                                                   imageBounds.getWidth() * pointer.drawBoundsNormalized.getWidth(),
+                                                   imageBounds.getHeight() * pointer.drawBoundsNormalized.getHeight());
+
+        const auto centre = juce::Point<float>(imageBounds.getX() + imageBounds.getWidth() * pointer.centerNormalized.x,
+                                               imageBounds.getY() + imageBounds.getHeight() * pointer.centerNormalized.y);
+        const auto angleRadians = juce::degreesToRadians(getWheelPointerAngleDegrees(pointer));
+
+        {
+            juce::Graphics::ScopedSaveState state(g);
+            g.addTransform(juce::AffineTransform::rotation(angleRadians, centre.x, centre.y));
+            g.drawImage(pointer.image, bounds);
+        }
+
+        if (debugWheelPointers)
+        {
+            g.setColour(getWheelControlColour(pointer.control).withAlpha(0.82f));
+            g.drawRect(bounds, 1.0f);
+            g.fillEllipse(juce::Rectangle<float>(8.0f, 8.0f).withCentre(centre));
+            g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+            g.drawFittedText(getWheelControlLabel(pointer.control) + " "
+                                + juce::String(getWheelPointerAngleDegrees(pointer), 1) + " deg",
+                             bounds.toNearestInt().reduced(3),
+                             juce::Justification::centred,
+                             1);
+        }
+    }
+}
+
 void F1Dashboard::paint(juce::Graphics& g)
 {
+    {
+        F1Theme::paintCarbonBackground(g, getLocalBounds());
+
+        const auto imageBounds = getWheelImageBounds();
+
+        // Final Wheel UI: the embedded image is the interface; hotspots below drive hidden APVTS-attached controls.
+        if (wheelImage.isValid())
+        {
+            g.setColour(juce::Colours::black.withAlpha(0.52f));
+            g.fillRoundedRectangle(imageBounds.expanded(14.0f).translated(0.0f, 10.0f), 18.0f);
+            g.drawImage(wheelImage, imageBounds);
+            paintWheelPointers(g, imageBounds);
+        }
+        else
+        {
+            g.setColour(juce::Colour(0xff050607));
+            g.fillRoundedRectangle(imageBounds, 18.0f);
+            g.setColour(F1Theme::red());
+            g.drawFittedText("Missing Assets/Wheel/sss33VOLANTE_base.png", imageBounds.toNearestInt(), juce::Justification::centred, 1);
+        }
+
+        const auto now = juce::Time::getMillisecondCounter();
+
+        for (const auto& spec : wheelControlMap)
+        {
+            const auto area = getWheelControlBounds(spec.control);
+            const auto accent = getWheelControlColour(spec.control);
+            const auto isHovered = spec.control == hoveredWheelControl;
+            const auto isActive = spec.control == activeWheelControl;
+            const auto isToggled = spec.kind == WheelControlKind::toggle
+                                && getWheelParameterId(spec.control).isNotEmpty()
+                                && getWheelParameterNormalized(spec.control) >= 0.5f;
+
+            if (debugWheelZones || isHovered || isActive || isToggled)
+            {
+                const auto activeAlpha = isActive || isToggled ? 0.18f : 0.09f;
+                g.setColour(accent.withAlpha(debugWheelZones ? 0.08f : activeAlpha));
+                if (spec.roundHitZone)
+                    g.fillEllipse(area);
+                else
+                    g.fillRoundedRectangle(area, 10.0f);
+
+                g.setColour(accent.withAlpha(isActive || isToggled ? 0.74f : 0.38f));
+                if (spec.roundHitZone)
+                    g.drawEllipse(area.reduced(1.0f), isActive || isToggled ? 1.8f : 1.1f);
+                else
+                    g.drawRoundedRectangle(area.reduced(1.0f), 9.0f, isActive || isToggled ? 1.8f : 1.1f);
+            }
+        }
+
+        auto tooltipControl = activeWheelControl != WheelControl::none ? activeWheelControl : hoveredWheelControl;
+        if (tooltipControl != WheelControl::none && (activeWheelControl != WheelControl::none || now < tooltipUntilMs || hoveredWheelControl != WheelControl::none))
+        {
+            const auto area = getWheelControlBounds(tooltipControl);
+            const auto accent = getWheelControlColour(tooltipControl);
+            const auto isAirDiagnosticTooltip = tooltipControl == WheelControl::midAir || tooltipControl == WheelControl::highAir;
+            auto tooltip = juce::Rectangle<float>(isAirDiagnosticTooltip ? 392.0f : 176.0f,
+                                                  isAirDiagnosticTooltip ? 54.0f : 42.0f)
+                               .withCentre(area.getCentre().translated(0.0f, -area.getHeight() * 0.64f));
+            tooltip.setX(juce::jlimit(imageBounds.getX() + 8.0f, imageBounds.getRight() - tooltip.getWidth() - 8.0f, tooltip.getX()));
+            tooltip.setY(juce::jlimit(imageBounds.getY() + 8.0f, imageBounds.getBottom() - tooltip.getHeight() - 8.0f, tooltip.getY()));
+
+            g.setColour(juce::Colours::black.withAlpha(0.64f));
+            g.fillRoundedRectangle(tooltip.translated(0.0f, 3.0f), 10.0f);
+            g.setColour(juce::Colour(0xee05080b));
+            g.fillRoundedRectangle(tooltip, 10.0f);
+            g.setColour(accent.withAlpha(0.82f));
+            g.drawRoundedRectangle(tooltip.reduced(1.0f), 9.0f, 1.2f);
+            g.setColour(F1Theme::text());
+            g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+            g.drawFittedText(getWheelControlLabel(tooltipControl),
+                             tooltip.toNearestInt().withTrimmedBottom(isAirDiagnosticTooltip ? 30 : 18).reduced(8, 2),
+                             juce::Justification::centred,
+                             1);
+            g.setColour(F1Theme::mutedText());
+            g.setFont(juce::FontOptions(isAirDiagnosticTooltip ? 9.0f : 10.0f, juce::Font::bold));
+            const auto tooltipValue = (tooltipControl == audibleStatusControl
+                                       && now < audibleStatusTooltipUntilMs
+                                       && audibleStatusTooltip.isNotEmpty())
+                                    ? audibleStatusTooltip
+                                    : getWheelControlValueText(tooltipControl);
+            g.drawFittedText(tooltipValue,
+                             tooltip.toNearestInt().withTrimmedTop(isAirDiagnosticTooltip ? 21 : 20).reduced(8, 1),
+                             juce::Justification::centred,
+                             isAirDiagnosticTooltip ? 2 : 1);
+        }
+
+        if constexpr (debugWheelFunctionalMapping)
+        {
+            if (debugOverlayText.isNotEmpty() && now < debugOverlayUntilMs)
+            {
+                auto overlay = juce::Rectangle<float>(330.0f, 92.0f)
+                                   .withPosition(imageBounds.getX() + 12.0f,
+                                                 imageBounds.getBottom() - 104.0f);
+                overlay.setX(juce::jlimit(imageBounds.getX() + 8.0f, imageBounds.getRight() - overlay.getWidth() - 8.0f, overlay.getX()));
+                overlay.setY(juce::jlimit(imageBounds.getY() + 8.0f, imageBounds.getBottom() - overlay.getHeight() - 8.0f, overlay.getY()));
+
+                g.setColour(juce::Colours::black.withAlpha(0.62f));
+                g.fillRoundedRectangle(overlay.translated(0.0f, 3.0f), 10.0f);
+                g.setColour(juce::Colour(0xee040607));
+                g.fillRoundedRectangle(overlay, 10.0f);
+                g.setColour(F1Theme::cyan().withAlpha(0.78f));
+                g.drawRoundedRectangle(overlay.reduced(1.0f), 9.0f, 1.1f);
+
+                auto lines = juce::StringArray::fromLines(debugOverlayText);
+                auto textArea = overlay.toNearestInt().reduced(10, 8);
+                g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
+                for (auto i = 0; i < lines.size(); ++i)
+                {
+                    g.setColour(i == 0 ? F1Theme::text() : F1Theme::mutedText());
+                    g.drawFittedText(lines[i], textArea.removeFromTop(18), juce::Justification::centredLeft, 1);
+                }
+            }
+        }
+
+        return;
+    }
+
     auto bounds = getLocalBounds();
     auto wheel = bounds.reduced(8, 8).toFloat();
     wheel.removeFromTop(8.0f);
@@ -504,8 +1722,7 @@ void F1Dashboard::paint(juce::Graphics& g)
     paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 1.52f, F1Theme::red(), "COMP");
     paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 1.74f, F1Theme::blue(), "AIR");
     paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 1.96f, F1Theme::amber(), "DLY");
-    paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 2.18f, F1Theme::cyan(), "REV");
-    paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 2.40f, F1Theme::amber(), "OUT");
+    paintHubRouteLabel(g, hub.getCentre(), routeRadius, juce::MathConstants<float>::pi * 2.18f, F1Theme::amber(), "OUT");
 
     auto display = compactDisplay
                        ? hub.withSizeKeepingCentre(hub.getWidth() * 0.78f, 76.0f).withY(hub.getY() + 42.0f)
@@ -530,7 +1747,7 @@ void F1Dashboard::paint(juce::Graphics& g)
         g.drawEllipse(display, 2.0f);
 
     auto title = juce::String("GLOBAL CONTROL");
-    auto route = juce::String("INPUT > CHANNEL > COMP > AIR > DELAY > REVERB > OUTPUT");
+    auto route = juce::String("INPUT > CHANNEL > COMP > AIR > DELAY > OUTPUT");
 
     if (activePage == Page::channel)
     {
@@ -552,12 +1769,6 @@ void F1Dashboard::paint(juce::Graphics& g)
         title = "DELAY";
         route = "SEND > TIME/SYNC > FILTERED FEEDBACK > RETURN";
     }
-    else if (activePage == Page::reverb)
-    {
-        title = "REVERB";
-        route = "PREDELAY > EARLY > LATE TANK > COLOR > MIX";
-    }
-
     g.setColour(F1Theme::text());
     g.setFont(juce::FontOptions(26.0f, juce::Font::bold));
     g.drawFittedText(title, display.toNearestInt().reduced(10, 16), juce::Justification::centred, 1);
@@ -608,8 +1819,156 @@ void F1Dashboard::paint(juce::Graphics& g)
     g.drawFittedText("UI: F1 Cockpit", getLocalBounds().reduced(34).removeFromBottom(18), juce::Justification::centredRight, 1);
 }
 
+void F1Dashboard::mouseMove(const juce::MouseEvent& event)
+{
+    const auto control = findWheelControl(event.position);
+    if (hoveredWheelControl != control)
+    {
+        hoveredWheelControl = control;
+        setMouseCursor(control == WheelControl::none ? juce::MouseCursor::NormalCursor
+                                                     : juce::MouseCursor::PointingHandCursor);
+        repaint();
+    }
+}
+
+void F1Dashboard::mouseExit(const juce::MouseEvent& event)
+{
+    juce::ignoreUnused(event);
+
+    if (hoveredWheelControl != WheelControl::none)
+    {
+        hoveredWheelControl = WheelControl::none;
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+        repaint();
+    }
+}
+
+void F1Dashboard::mouseDown(const juce::MouseEvent& event)
+{
+    const auto control = findWheelControl(event.position);
+    if (control == WheelControl::none)
+        return;
+
+    hoveredWheelControl = control;
+    setMouseCursor(control == WheelControl::none ? juce::MouseCursor::NormalCursor
+                                                 : juce::MouseCursor::PointingHandCursor);
+
+    const auto kind = getWheelControlKind(control);
+    if (kind == WheelControlKind::toggle)
+    {
+        toggleWheelControl(control);
+        return;
+    }
+
+    if (kind == WheelControlKind::timing || kind == WheelControlKind::stepped)
+    {
+        beginWheelControlDrag(control, event.position);
+        return;
+    }
+
+    if (kind == WheelControlKind::placeholder)
+    {
+        showWheelControlTooltip(control);
+        repaint();
+        return;
+    }
+
+    beginWheelControlDrag(control, event.position);
+}
+
+void F1Dashboard::mouseDrag(const juce::MouseEvent& event)
+{
+    if (activeWheelControl != WheelControl::none)
+    {
+        setMouseCursor(juce::MouseCursor::DraggingHandCursor);
+        dragWheelControl(event.position);
+    }
+}
+
+void F1Dashboard::mouseUp(const juce::MouseEvent& event)
+{
+    juce::ignoreUnused(event);
+    endWheelControlDrag();
+}
+
+void F1Dashboard::mouseWheelMove(const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+{
+    auto control = findWheelControl(event.position);
+    if (control == WheelControl::none)
+        control = hoveredWheelControl;
+
+    if (control == WheelControl::none)
+        return;
+
+    const auto direction = wheel.deltaY >= 0.0f ? 1 : -1;
+    incrementWheelControl(control, direction);
+}
+
 void F1Dashboard::resized()
 {
+    {
+        auto setHotspotButton = [this] (GordoButton& button, Hotspot hotspot)
+        {
+            button.setBounds(getHotspotBounds(hotspot).withSizeKeepingCentre(112.0f, 44.0f).toNearestInt());
+        };
+
+        setHotspotButton(tabGlobal, Hotspot::global);
+        setHotspotButton(tabChannel, Hotspot::channel);
+        setHotspotButton(tabComp, Hotspot::comp);
+        setHotspotButton(tabAir, Hotspot::air);
+        setHotspotButton(tabDelay, Hotspot::delay);
+        setHotspotButton(tabRouting, Hotspot::routing);
+        setHotspotButton(tabMeters, Hotspot::meters);
+
+        auto meterArea = (activePage == Page::meters ? getControlPanelBounds().reduced(30.0f, 70.0f)
+                                                     : getHotspotBounds(Hotspot::meters).reduced(22.0f, 34.0f)).toNearestInt();
+        meterArea = meterArea.withWidth(154).withCentre(meterArea.getCentre());
+        inputMeter.setBounds(meterArea.removeFromLeft(48));
+        meterArea.removeFromLeft(8);
+        outputMeter.setBounds(meterArea.removeFromLeft(48));
+        meterArea.removeFromLeft(8);
+        gainReductionMeter.setBounds(meterArea.removeFromLeft(48));
+
+        auto panel = getControlPanelBounds().toNearestInt().reduced(10, 6);
+
+        if (activePage == Page::meters)
+        {
+            panel = {};
+        }
+        else if (activePage == Page::channel)
+        {
+            layoutChannelPage(panel);
+        }
+        else if (activePage == Page::comp)
+        {
+            layoutCompPage(panel);
+        }
+        else if (activePage == Page::air)
+        {
+            layoutAirPage(panel);
+        }
+        else if (activePage == Page::delay)
+        {
+            layoutDelayPage(panel);
+        }
+        else
+        {
+            layoutGlobalPage(panel);
+        }
+
+        auto ledArea = getHotspotBounds(Hotspot::global).withSizeKeepingCentre(250.0f, 20.0f).translated(0.0f, 58.0f).toNearestInt();
+        for (auto& led : moduleLeds)
+            led.setBounds(ledArea.removeFromLeft(62).withSizeKeepingCentre(18, 18));
+
+        for (auto* tab : tabs)
+            tab->toFront(false);
+
+        inputMeter.toFront(false);
+        outputMeter.toFront(false);
+        gainReductionMeter.toFront(false);
+        return;
+    }
+
     auto frame = getLocalBounds().reduced(24);
     const auto tabCentreX = frame.getCentreX();
     const auto tabCentreY = frame.getY() + 168;
@@ -665,13 +2024,17 @@ void F1Dashboard::resized()
 
 void F1Dashboard::setPage(Page newPage)
 {
+    if (newPage == Page::reverb)
+        newPage = Page::global;
+
     activePage = newPage;
     tabGlobal.setToggleState(activePage == Page::global, juce::dontSendNotification);
     tabChannel.setToggleState(activePage == Page::channel, juce::dontSendNotification);
     tabComp.setToggleState(activePage == Page::comp, juce::dontSendNotification);
     tabAir.setToggleState(activePage == Page::air, juce::dontSendNotification);
     tabDelay.setToggleState(activePage == Page::delay, juce::dontSendNotification);
-    tabReverb.setToggleState(activePage == Page::reverb, juce::dontSendNotification);
+    tabRouting.setToggleState(activePage == Page::routing, juce::dontSendNotification);
+    tabMeters.setToggleState(activePage == Page::meters, juce::dontSendNotification);
     updateControlVisibility();
     resized();
     repaint();
@@ -679,278 +2042,261 @@ void F1Dashboard::setPage(Page newPage)
 
 void F1Dashboard::updateControlVisibility()
 {
-    const auto onGlobal = activePage == Page::global;
-    const auto onChannel = activePage == Page::channel;
-    const auto onComp = activePage == Page::comp;
-    const auto onAir = activePage == Page::air;
-    const auto onDelay = activePage == Page::delay;
-    const auto onReverb = activePage == Page::reverb;
+    for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &masterWidth })
+        knob->setVisible(false);
 
-    for (auto* knob : { &inputGain, &outputGain, &channelMix, &compMix, &airMix, &delaySend, &reverbSend, &masterWidth })
-        knob->setVisible(onGlobal);
+    reverbSend.setVisible(false);
 
     for (auto* knob : { &channelInputTrim, &channelHighPass, &channelLowPass, &channelLowGain, &channelLowFreq,
                         &channelLowMidGain, &channelLowMidFreq, &channelHighMidGain, &channelHighMidFreq,
                         &channelHighGain, &channelHighFreq, &channelDrive, &channelPageMix })
-        knob->setVisible(onChannel);
+        knob->setVisible(false);
 
     for (auto* knob : { &compInput, &compThreshold, &compOutput, &compAttack, &compRelease, &compRatio, &compPageMix,
                         &compSidechainHp, &compRevision, &compNoise })
-        knob->setVisible(onComp);
+        knob->setVisible(false);
 
     for (auto* knob : { &airPageAmount, &airMidAir, &airHighAir, &airFrequency, &airPageTone,
                         &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
-        knob->setVisible(onAir);
+        knob->setVisible(false);
 
     for (auto* knob : { &delayTime, &delayDivision, &delayMode, &delayFeedback, &delayPageSend,
                         &delayLeftTime, &delayRightTime, &delayHighPass, &delayLowPass, &delayWidth,
                         &delayLoFi, &delayModDepth, &delayModRate, &delayDucking })
-        knob->setVisible(onDelay);
+        knob->setVisible(false);
 
     for (auto* knob : { &reverbPageMix, &reverbPredelay, &reverbDecay, &reverbSize, &reverbAttack, &reverbWidth,
                         &reverbEarly, &reverbLate, &reverbDiffEarly, &reverbDiffLate, &reverbModRate, &reverbModDepth,
                         &reverbLowCut, &reverbHighCut, &reverbLowDamp, &reverbHighDamp, &reverbMode, &reverbColor,
                         &reverbDucking })
-        knob->setVisible(onReverb);
+        knob->setVisible(false);
 
-    globalBypass.setVisible(onGlobal);
-    channelEnabled.setVisible(onGlobal);
-    compEnabled.setVisible(onGlobal);
-    airEnabled.setVisible(onGlobal);
-    delayEnabled.setVisible(onGlobal);
-    reverbEnabled.setVisible(onGlobal);
-    channelPhaseInvert.setVisible(onChannel);
-    compPageEnabled.setVisible(onComp);
-    airPageEnabled.setVisible(onAir);
-    delaySync.setVisible(onDelay);
-    delayLink.setVisible(onDelay);
-    delayFreeze.setVisible(onDelay);
-    delayPageEnabled.setVisible(onDelay);
-    reverbFreeze.setVisible(onReverb);
-    reverbSyncPredelay.setVisible(onReverb);
-    reverbMonoBass.setVisible(onReverb);
-    reverbPageEnabled.setVisible(onReverb);
+    globalBypass.setVisible(false);
+    channelEnabled.setVisible(false);
+    compEnabled.setVisible(false);
+    airEnabled.setVisible(false);
+    delayEnabled.setVisible(false);
+    reverbEnabled.setVisible(false);
+    channelPhaseInvert.setVisible(false);
+    compPageEnabled.setVisible(false);
+    airPageEnabled.setVisible(false);
+    delaySync.setVisible(false);
+    delayLink.setVisible(false);
+    delayFreeze.setVisible(false);
+    delayPageEnabled.setVisible(false);
+    reverbFreeze.setVisible(false);
+    reverbSyncPredelay.setVisible(false);
+    reverbMonoBass.setVisible(false);
+    reverbPageEnabled.setVisible(false);
+
+    for (auto* tab : tabs)
+        tab->setVisible(false);
+
+    for (auto& led : moduleLeds)
+        led.setVisible(false);
+
+    inputMeter.setVisible(false);
+    outputMeter.setVisible(false);
+    gainReductionMeter.setVisible(false);
 }
 
 void F1Dashboard::layoutGlobalPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(16, 4);
+    juce::ignoreUnused(cockpit);
 
-    constexpr auto knobWidth = 130;
-    constexpr auto knobHeight = 126;
-    const auto leftX = controls.getX() + 12;
-    const auto rightX = controls.getRight() - knobWidth - 12;
-    const auto topY = controls.getY() + 4;
-    const auto midY = controls.getCentreY() - knobHeight / 2 - 8;
-    const auto bottomY = controls.getBottom() - knobHeight - 6;
-    const auto centreX = controls.getCentreX();
+    const auto image = getWheelImageBounds();
+    const auto knobW = juce::roundToInt(juce::jlimit(58.0f, 78.0f, image.getWidth() * 0.062f));
+    const auto knobH = juce::roundToInt(static_cast<float>(knobW) * 0.95f);
+    const auto buttonW = juce::roundToInt(juce::jlimit(58.0f, 78.0f, image.getWidth() * 0.060f));
+    const auto buttonH = juce::roundToInt(juce::jlimit(24.0f, 31.0f, image.getHeight() * 0.045f));
+
+    auto at = [&] (float x, float y)
+    {
+        return juce::Point<int>(juce::roundToInt(image.getX() + image.getWidth() * x),
+                                juce::roundToInt(image.getY() + image.getHeight() * y));
+    };
+
+    auto placeKnob = [&] (GordoKnob& knob, float x, float y)
+    {
+        knob.setBounds(juce::Rectangle<int>(knobW, knobH).withCentre(at(x, y)));
+    };
+
+    auto placeButton = [&] (GordoButton& button, float x, float y, float widthScale = 1.0f)
+    {
+        button.setBounds(juce::Rectangle<int>(juce::roundToInt(static_cast<float>(buttonW) * widthScale), buttonH).withCentre(at(x, y)));
+    };
 
     // Global macros stay exposed for host automation and future wheel/controller mapping.
-    inputGain.setBounds(leftX, topY, knobWidth, knobHeight);
-    outputGain.setBounds(rightX, topY, knobWidth, knobHeight);
-    channelMix.setBounds(leftX, midY, knobWidth, knobHeight);
-    masterWidth.setBounds(rightX, midY, knobWidth, knobHeight);
-    delaySend.setBounds(leftX, bottomY, knobWidth, knobHeight);
-    reverbSend.setBounds(rightX, bottomY, knobWidth, knobHeight);
-    compMix.setBounds(centreX - knobWidth - 42, bottomY, knobWidth, knobHeight);
-    airMix.setBounds(centreX + 42, bottomY, knobWidth, knobHeight);
+    placeKnob(inputGain, 0.40f, 0.22f);
+    placeKnob(outputGain, 0.60f, 0.22f);
+    placeKnob(channelMix, 0.34f, 0.39f);
+    placeKnob(compMix, 0.63f, 0.39f);
+    placeKnob(airMix, 0.34f, 0.62f);
+    placeKnob(delaySend, 0.63f, 0.62f);
+    placeKnob(masterWidth, 0.50f, 0.56f);
+    reverbSend.setBounds(0, 0, 0, 0);
 
-    auto switchArea = juce::Rectangle<int>(568, 58).withCentre(juce::Point<int>(centreX, controls.getCentreY() + 34));
-    globalBypass.setBounds(switchArea.removeFromLeft(88).reduced(4, 9));
-    channelEnabled.setBounds(switchArea.removeFromLeft(86).reduced(4, 9));
-    compEnabled.setBounds(switchArea.removeFromLeft(76).reduced(4, 9));
-    airEnabled.setBounds(switchArea.removeFromLeft(70).reduced(4, 9));
-    delayEnabled.setBounds(switchArea.removeFromLeft(82).reduced(4, 9));
-    reverbEnabled.setBounds(switchArea.removeFromLeft(90).reduced(4, 9));
+    placeButton(globalBypass, 0.50f, 0.82f, 1.20f);
+    placeButton(channelEnabled, 0.28f, 0.31f, 1.18f);
+    placeButton(compEnabled, 0.72f, 0.31f, 1.00f);
+    placeButton(airEnabled, 0.28f, 0.70f, 0.90f);
+    placeButton(delayEnabled, 0.72f, 0.70f, 1.00f);
+    reverbEnabled.setBounds(0, 0, 0, 0);
 }
 
 void F1Dashboard::layoutChannelPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(28, 0);
-    controls.removeFromTop(86);
-    controls.removeFromBottom(18);
+    juce::ignoreUnused(cockpit);
 
-    constexpr auto knobWidth = 118;
-    constexpr auto knobHeight = 110;
-    constexpr auto buttonWidth = 118;
-    constexpr auto buttonHeight = 46;
-    constexpr auto gapX = 11;
-    constexpr auto gapY = 8;
+    const auto image = getWheelImageBounds();
+    const auto knobW = juce::roundToInt(juce::jlimit(50.0f, 68.0f, image.getWidth() * 0.054f));
+    const auto knobH = juce::roundToInt(static_cast<float>(knobW) * 0.96f);
+    const auto buttonW = juce::roundToInt(juce::jlimit(54.0f, 76.0f, image.getWidth() * 0.060f));
+    const auto buttonH = juce::roundToInt(juce::jlimit(24.0f, 30.0f, image.getHeight() * 0.044f));
 
-    auto layoutKnobs = [] (juce::Rectangle<int> rowArea, std::initializer_list<GordoKnob*> knobs)
+    auto at = [&] (float x, float y)
     {
-        constexpr auto localKnobWidth = knobWidth;
-        constexpr auto localKnobHeight = knobHeight;
-        constexpr auto localGapX = gapX;
-
-        const auto rowWidth = static_cast<int>(knobs.size()) * localKnobWidth
-                            + (static_cast<int>(knobs.size()) - 1) * localGapX;
-        auto row = juce::Rectangle<int>(rowWidth, localKnobHeight).withCentre(rowArea.getCentre());
-
-        for (auto* knob : knobs)
-        {
-            knob->setBounds(row.removeFromLeft(localKnobWidth));
-            row.removeFromLeft(localGapX);
-        }
+        return juce::Point<int>(juce::roundToInt(image.getX() + image.getWidth() * x),
+                                juce::roundToInt(image.getY() + image.getHeight() * y));
     };
 
-    auto topRow = controls.removeFromTop(knobHeight);
-    const auto topRowWidth = 5 * knobWidth + buttonWidth + 5 * gapX;
-    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
-
-    for (auto* knob : { &channelInputTrim, &channelHighPass, &channelLowPass, &channelDrive, &channelPageMix })
+    auto placeKnob = [&] (GordoKnob& knob, float x, float y)
     {
-        knob->setBounds(top.removeFromLeft(knobWidth));
-        top.removeFromLeft(gapX);
-    }
+        knob.setBounds(juce::Rectangle<int>(knobW, knobH).withCentre(at(x, y)));
+    };
 
-    auto phaseCell = top.removeFromLeft(buttonWidth);
-    channelPhaseInvert.setBounds(phaseCell.withSizeKeepingCentre(buttonWidth, buttonHeight));
+    placeKnob(channelInputTrim, 0.28f, 0.27f);
+    placeKnob(channelHighPass, 0.35f, 0.26f);
+    placeKnob(channelLowPass, 0.42f, 0.27f);
+    placeKnob(channelDrive, 0.30f, 0.39f);
+    placeKnob(channelPageMix, 0.42f, 0.40f);
+    placeKnob(channelLowGain, 0.27f, 0.52f);
+    placeKnob(channelLowFreq, 0.34f, 0.52f);
+    placeKnob(channelLowMidGain, 0.41f, 0.52f);
+    placeKnob(channelLowMidFreq, 0.48f, 0.52f);
+    placeKnob(channelHighMidGain, 0.27f, 0.65f);
+    placeKnob(channelHighMidFreq, 0.34f, 0.65f);
+    placeKnob(channelHighGain, 0.41f, 0.65f);
+    placeKnob(channelHighFreq, 0.48f, 0.65f);
 
-    controls.removeFromTop(gapY);
-    layoutKnobs(controls.removeFromTop(knobHeight),
-                { &channelLowGain, &channelLowFreq, &channelLowMidGain, &channelLowMidFreq });
-
-    controls.removeFromTop(gapY);
-    layoutKnobs(controls.removeFromTop(knobHeight),
-                { &channelHighMidGain, &channelHighMidFreq, &channelHighGain, &channelHighFreq });
+    channelPhaseInvert.setBounds(juce::Rectangle<int>(buttonW, buttonH).withCentre(at(0.22f, 0.40f)));
 }
 
 void F1Dashboard::layoutCompPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(34, 0);
-    controls.removeFromTop(96);
-    controls.removeFromBottom(42);
+    juce::ignoreUnused(cockpit);
 
-    constexpr auto knobWidth = 118;
-    constexpr auto knobHeight = 112;
-    constexpr auto buttonWidth = 116;
-    constexpr auto buttonHeight = 48;
-    constexpr auto gapX = 10;
-    constexpr auto gapY = 18;
+    const auto image = getWheelImageBounds();
+    const auto knobW = juce::roundToInt(juce::jlimit(50.0f, 68.0f, image.getWidth() * 0.054f));
+    const auto knobH = juce::roundToInt(static_cast<float>(knobW) * 0.96f);
+    const auto buttonW = juce::roundToInt(juce::jlimit(48.0f, 68.0f, image.getWidth() * 0.055f));
+    const auto buttonH = juce::roundToInt(juce::jlimit(24.0f, 30.0f, image.getHeight() * 0.044f));
 
-    auto topRow = controls.removeFromTop(knobHeight);
-    const auto topRowWidth = 6 * knobWidth + 5 * gapX;
-    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
-
-    for (auto* knob : { &compInput, &compThreshold, &compOutput, &compAttack, &compRelease, &compRatio })
+    auto at = [&] (float x, float y)
     {
-        knob->setBounds(top.removeFromLeft(knobWidth));
-        top.removeFromLeft(gapX);
-    }
+        return juce::Point<int>(juce::roundToInt(image.getX() + image.getWidth() * x),
+                                juce::roundToInt(image.getY() + image.getHeight() * y));
+    };
 
-    controls.removeFromTop(gapY);
-
-    auto bottomRow = controls.removeFromTop(knobHeight);
-    const auto bottomRowWidth = 4 * knobWidth + buttonWidth + 4 * gapX;
-    auto bottom = juce::Rectangle<int>(bottomRowWidth, knobHeight).withCentre(bottomRow.getCentre());
-
-    for (auto* knob : { &compPageMix, &compSidechainHp, &compRevision, &compNoise })
+    auto placeKnob = [&] (GordoKnob& knob, float x, float y)
     {
-        knob->setBounds(bottom.removeFromLeft(knobWidth));
-        bottom.removeFromLeft(gapX);
-    }
+        knob.setBounds(juce::Rectangle<int>(knobW, knobH).withCentre(at(x, y)));
+    };
 
-    compPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+    placeKnob(compInput, 0.55f, 0.27f);
+    placeKnob(compThreshold, 0.62f, 0.26f);
+    placeKnob(compOutput, 0.69f, 0.27f);
+    placeKnob(compAttack, 0.55f, 0.40f);
+    placeKnob(compRelease, 0.62f, 0.40f);
+    placeKnob(compRatio, 0.69f, 0.40f);
+    placeKnob(compPageMix, 0.55f, 0.54f);
+    placeKnob(compSidechainHp, 0.62f, 0.54f);
+    placeKnob(compRevision, 0.69f, 0.54f);
+    placeKnob(compNoise, 0.76f, 0.54f);
+
+    compPageEnabled.setBounds(juce::Rectangle<int>(buttonW, buttonH).withCentre(at(0.77f, 0.39f)));
 }
 
 void F1Dashboard::layoutAirPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(20, 0);
-    controls.removeFromTop(96);
-    controls.removeFromBottom(44);
+    juce::ignoreUnused(cockpit);
 
-    constexpr auto topKnobWidth = 118;
-    constexpr auto bottomKnobWidth = 104;
-    constexpr auto knobHeight = 112;
-    constexpr auto buttonWidth = 96;
-    constexpr auto buttonHeight = 48;
-    constexpr auto topGapX = 10;
-    constexpr auto bottomGapX = 8;
-    constexpr auto gapY = 14;
+    const auto image = getWheelImageBounds();
+    const auto knobW = juce::roundToInt(juce::jlimit(48.0f, 66.0f, image.getWidth() * 0.052f));
+    const auto knobH = juce::roundToInt(static_cast<float>(knobW) * 0.96f);
+    const auto buttonW = juce::roundToInt(juce::jlimit(48.0f, 66.0f, image.getWidth() * 0.052f));
+    const auto buttonH = juce::roundToInt(juce::jlimit(24.0f, 30.0f, image.getHeight() * 0.044f));
 
-    auto topRow = controls.removeFromTop(knobHeight);
-    const auto topRowWidth = 5 * topKnobWidth + 4 * topGapX;
-    auto top = juce::Rectangle<int>(topRowWidth, knobHeight).withCentre(topRow.getCentre());
-
-    for (auto* knob : { &airPageAmount, &airMidAir, &airHighAir, &airFrequency, &airPageTone })
+    auto at = [&] (float x, float y)
     {
-        knob->setBounds(top.removeFromLeft(topKnobWidth));
-        top.removeFromLeft(topGapX);
-    }
+        return juce::Point<int>(juce::roundToInt(image.getX() + image.getWidth() * x),
+                                juce::roundToInt(image.getY() + image.getHeight() * y));
+    };
 
-    controls.removeFromTop(gapY);
-
-    auto bottomRow = controls.removeFromTop(knobHeight);
-    const auto bottomRowWidth = 6 * bottomKnobWidth + buttonWidth + 6 * bottomGapX;
-    auto bottom = juce::Rectangle<int>(bottomRowWidth, knobHeight).withCentre(bottomRow.getCentre());
-
-    for (auto* knob : { &airPageDrive, &airDensity, &airDynamic, &airDeEss, &airPageMix, &airPageOutput })
+    auto placeKnob = [&] (GordoKnob& knob, float x, float y)
     {
-        knob->setBounds(bottom.removeFromLeft(bottomKnobWidth));
-        bottom.removeFromLeft(bottomGapX);
-    }
+        knob.setBounds(juce::Rectangle<int>(knobW, knobH).withCentre(at(x, y)));
+    };
 
-    airPageEnabled.setBounds(bottom.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
+    placeKnob(airPageAmount, 0.25f, 0.50f);
+    placeKnob(airMidAir, 0.32f, 0.50f);
+    placeKnob(airHighAir, 0.39f, 0.50f);
+    placeKnob(airFrequency, 0.46f, 0.50f);
+    placeKnob(airPageDrive, 0.25f, 0.63f);
+    placeKnob(airDensity, 0.32f, 0.63f);
+    placeKnob(airDynamic, 0.39f, 0.63f);
+    placeKnob(airDeEss, 0.46f, 0.63f);
+    placeKnob(airPageTone, 0.30f, 0.76f);
+    placeKnob(airPageMix, 0.38f, 0.76f);
+    placeKnob(airPageOutput, 0.46f, 0.76f);
+
+    airPageEnabled.setBounds(juce::Rectangle<int>(buttonW, buttonH).withCentre(at(0.20f, 0.64f)));
 }
 
 void F1Dashboard::layoutDelayPage(juce::Rectangle<int> cockpit)
 {
-    auto controls = cockpit.reduced(14, 0);
-    controls.removeFromTop(84);
-    controls.removeFromBottom(18);
+    juce::ignoreUnused(cockpit);
 
-    constexpr auto knobWidth = 102;
-    constexpr auto knobHeight = 96;
-    constexpr auto buttonWidth = 84;
-    constexpr auto buttonHeight = 44;
-    constexpr auto gapX = 8;
-    constexpr auto gapY = 8;
+    const auto image = getWheelImageBounds();
+    const auto knobW = juce::roundToInt(juce::jlimit(46.0f, 62.0f, image.getWidth() * 0.050f));
+    const auto knobH = juce::roundToInt(static_cast<float>(knobW) * 0.96f);
+    const auto buttonW = juce::roundToInt(juce::jlimit(44.0f, 64.0f, image.getWidth() * 0.050f));
+    const auto buttonH = juce::roundToInt(juce::jlimit(22.0f, 29.0f, image.getHeight() * 0.042f));
 
-    auto makeRow = [=] (juce::Rectangle<int> rowArea, int knobCount, int buttonCount)
+    auto at = [&] (float x, float y)
     {
-        const auto itemCount = knobCount + buttonCount;
-        const auto rowWidth = knobCount * knobWidth + buttonCount * buttonWidth + (itemCount - 1) * gapX;
-        return juce::Rectangle<int>(rowWidth, knobHeight).withCentre(rowArea.getCentre());
+        return juce::Point<int>(juce::roundToInt(image.getX() + image.getWidth() * x),
+                                juce::roundToInt(image.getY() + image.getHeight() * y));
     };
 
-    auto placeKnob = [=] (juce::Rectangle<int>& row, GordoKnob& knob)
+    auto placeKnob = [&] (GordoKnob& knob, float x, float y)
     {
-        knob.setBounds(row.removeFromLeft(knobWidth));
-        row.removeFromLeft(gapX);
+        knob.setBounds(juce::Rectangle<int>(knobW, knobH).withCentre(at(x, y)));
     };
 
-    auto placeButton = [=] (juce::Rectangle<int>& row, GordoButton& button)
+    auto placeButton = [&] (GordoButton& button, float x, float y, float widthScale = 1.0f)
     {
-        button.setBounds(row.removeFromLeft(buttonWidth).withSizeKeepingCentre(buttonWidth, buttonHeight));
-        row.removeFromLeft(gapX);
+        button.setBounds(juce::Rectangle<int>(juce::roundToInt(static_cast<float>(buttonW) * widthScale), buttonH).withCentre(at(x, y)));
     };
 
-    auto row1 = makeRow(controls.removeFromTop(knobHeight), 5, 1);
-    placeKnob(row1, delayTime);
-    placeButton(row1, delaySync);
-    placeKnob(row1, delayDivision);
-    placeKnob(row1, delayMode);
-    placeKnob(row1, delayFeedback);
-    placeKnob(row1, delayPageSend);
-
-    controls.removeFromTop(gapY);
-    auto row2 = makeRow(controls.removeFromTop(knobHeight), 5, 1);
-    placeKnob(row2, delayLeftTime);
-    placeKnob(row2, delayRightTime);
-    placeButton(row2, delayLink);
-    placeKnob(row2, delayHighPass);
-    placeKnob(row2, delayLowPass);
-    placeKnob(row2, delayWidth);
-
-    controls.removeFromTop(gapY);
-    auto row3 = makeRow(controls.removeFromTop(knobHeight), 4, 2);
-    placeKnob(row3, delayLoFi);
-    placeKnob(row3, delayModDepth);
-    placeKnob(row3, delayModRate);
-    placeKnob(row3, delayDucking);
-    placeButton(row3, delayFreeze);
-    placeButton(row3, delayPageEnabled);
+    placeKnob(delayTime, 0.54f, 0.50f);
+    placeButton(delaySync, 0.60f, 0.46f, 1.05f);
+    placeKnob(delayDivision, 0.62f, 0.50f);
+    placeKnob(delayMode, 0.70f, 0.50f);
+    placeKnob(delayFeedback, 0.76f, 0.50f);
+    placeKnob(delayPageSend, 0.76f, 0.63f);
+    placeKnob(delayLeftTime, 0.54f, 0.63f);
+    placeKnob(delayRightTime, 0.62f, 0.63f);
+    placeButton(delayLink, 0.68f, 0.61f, 1.00f);
+    placeKnob(delayHighPass, 0.70f, 0.63f);
+    placeKnob(delayLowPass, 0.54f, 0.76f);
+    placeKnob(delayWidth, 0.62f, 0.76f);
+    placeKnob(delayLoFi, 0.70f, 0.76f);
+    placeKnob(delayModDepth, 0.76f, 0.76f);
+    placeKnob(delayModRate, 0.58f, 0.86f);
+    placeKnob(delayDucking, 0.66f, 0.86f);
+    placeButton(delayFreeze, 0.73f, 0.86f, 1.14f);
+    placeButton(delayPageEnabled, 0.80f, 0.86f, 0.90f);
 }
 
 void F1Dashboard::layoutReverbPage(juce::Rectangle<int> cockpit)
