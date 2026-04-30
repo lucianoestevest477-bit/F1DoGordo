@@ -169,6 +169,8 @@ private:
         compEnabled,
         airEnabled,
         delayEnabled,
+        reverbEnabled,
+        reverbMix,
         ab,
         save
     };
@@ -232,10 +234,10 @@ private:
 
     static constexpr bool debugWheelZones = false;
     static constexpr bool debugWheelPointers = false;
-    static constexpr bool debugWheelFunctionalMapping = true;
+    static constexpr bool debugWheelFunctionalMapping = false;
 
     // Final wheel control map. Coordinates are normalized to Assets/sss33VOLANTE.png.
-    static constexpr std::array<WheelControlZone, 17> wheelControlMap {{
+    static constexpr std::array<WheelControlZone, 19> wheelControlMap {{
         { WheelControl::input,     WheelControlKind::continuous,  "INPUT",     "inputGainDb",       0.205f, 0.048f, 0.060f, 0.086f, true  },
         { WheelControl::output,    WheelControlKind::continuous,  "OUTPUT",    "outputGainDb",      0.733f, 0.048f, 0.060f, 0.086f, true  },
         { WheelControl::threshold, WheelControlKind::continuous,  "THRESHOLD", "compThresholdDb",   0.351f, 0.404f, 0.062f, 0.130f, true  },
@@ -245,12 +247,14 @@ private:
         { WheelControl::gain,      WheelControlKind::continuous,  "GAIN",      "compOutputDb",      0.468f, 0.617f, 0.064f, 0.132f, true  },
         { WheelControl::midAir,    WheelControlKind::continuous,  "MID AIR",   "airMidAir",         0.268f, 0.538f, 0.050f, 0.096f, true  },
         { WheelControl::highAir,   WheelControlKind::continuous,  "HIGH AIR",  "airHighAir",        0.268f, 0.638f, 0.050f, 0.096f, true  },
-        { WheelControl::feedback,  WheelControlKind::continuous,  "FEEDBACK",  "delayFeedback",     0.691f, 0.516f, 0.038f, 0.078f, true  },
+        { WheelControl::feedback,  WheelControlKind::continuous,  "DELAY RETURN", "delaySend",      0.691f, 0.516f, 0.038f, 0.078f, true  },
         { WheelControl::timing,    WheelControlKind::timing,      "TIMING",    "delayNoteDivision", 0.691f, 0.651f, 0.038f, 0.078f, true  },
         { WheelControl::bypass,    WheelControlKind::toggle,      "BYPASS",    "globalBypass",      0.392f, 0.805f, 0.060f, 0.070f, false },
         { WheelControl::compEnabled,  WheelControlKind::toggle,   "COMP",      "compEnabled",       0.642f, 0.300f, 0.040f, 0.065f, true  },
         { WheelControl::airEnabled,   WheelControlKind::toggle,   "AIR",       "airEnabled",        0.270f, 0.455f, 0.052f, 0.075f, true  },
         { WheelControl::delayEnabled, WheelControlKind::toggle,   "DELAY",     "delayEnabled",      0.675f, 0.725f, 0.052f, 0.075f, true  },
+        { WheelControl::reverbEnabled, WheelControlKind::toggle,  "REVERB",    "reverbEnabled",     0.301f, 0.323f, 0.046f, 0.083f, true  },
+        { WheelControl::reverbMix,     WheelControlKind::continuous, "REVERB MIX", "reverbMix",      0.258f, 0.186f, 0.040f, 0.148f, false },
         { WheelControl::ab,        WheelControlKind::placeholder, "A/B",       "",                  0.474f, 0.805f, 0.054f, 0.070f, false },
         { WheelControl::save,      WheelControlKind::placeholder, "SAVE",      "",                  0.548f, 0.805f, 0.060f, 0.070f, false }
     }};
@@ -307,6 +311,12 @@ private:
     void setParameterNormalizedById(const juce::String& parameterId,
                                     float normalizedValue,
                                     const juce::String& labelForDebug);
+    void setParameterActualValueById(const juce::String& parameterId,
+                                     float actualValue,
+                                     const juce::String& labelForDebug);
+    void primeDelayFeedbackForWheel();
+    void primeDelayTimingForWheel();
+    void primeWheelReverbVoicingIfFactoryState();
     void showWheelControlTooltip(WheelControl control);
     void showAudibleStatusTooltip(WheelControl control, const juce::String& text);
     juce::String getWheelControlValueText(WheelControl control) const;

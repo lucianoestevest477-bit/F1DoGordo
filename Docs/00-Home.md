@@ -35,21 +35,23 @@ Este vault documenta o projeto **F1 do Gordo** para continuidade tecnica, histor
 - Plugin VST3 compila em Release.
 - Host principal de validacao: FL Studio.
 - Factory default neutro: uma instancia nova deve soar praticamente igual ao bypass do slot. Ver [[decisions/0003-Factory-Default-Neutral]].
-- Modulos funcionais/validados: [[modules/Channel-EQ]], [[modules/FET-Compressor]], [[modules/Air-Exciter]] e [[modules/Delay]].
-- [[modules/Reverb]] existe e processa audio, mas o usuario nao gostou do resultado sonoro atual. Tratar como funcional/prototipo, nao como modulo aprovado.
-- UI esta em direcao de volante/cockpit F1 interativo, escura, com carbono/metal, hub central, botoes neon e foco em hardware mapping.
+- Checkpoint atual: `v0.1.0-wheel-prototype`.
+- Modulos funcionais/validados para checkpoint: [[modules/Channel-EQ]], [[modules/FET-Compressor]], [[modules/Air-Exciter]], [[modules/Delay]] e [[modules/Reverb]].
+- [[modules/Reverb]] foi refinado por A/B local e esta musical para prototipo, mas ainda continua em evolucao.
+- UI Wheel esta integrada com ponteiros interativos, hotspots e foco em hardware mapping.
 - IDs APVTS sao contrato de automacao/hardware mapping e devem permanecer estaveis. Ver [[04-Parameters-APVTS]] e [[07-Hardware-Mapping-Plan]].
+- `ReferenceAudio/` e local, ignorado pelo Git e nao deve ser publicado.
 
 ## Proximas prioridades
 
-1. Fase 10: plano pratico de hardware mapping / controller mapping.
-2. Fase 11: sistema inicial de presets.
-3. Fase 12: Reverb V2 simples, estavel e musical para substituir/refinar o Reverb atual.
-4. Fase 13: polimento final de UI e legibilidade.
-5. Fase 14: pacote de release / installer.
+1. Melhorar Delay inspirado em delay analogico/tape.
+2. Melhorar Compressor.
+3. Melhorar Air.
+4. Substituir arte de referencia/prototipo por arte original antes de release publico.
+5. Melhorar instalador e fluxo de GitHub Release.
 
 ## Notas criticas
 
 - Delay nao deve ter `dryWet`, `output` ou `analog`; a quantidade e controlada por `delaySend` / ECHO. Ver [[decisions/0002-Delay-No-DryWet-Output-Analog]].
 - A UI deve continuar host-automation/controller-mapping friendly. Ver [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]].
-- Reverb V2 e pendencia prioritaria porque o resultado atual nao foi aprovado pelo usuario. Ver [[08-Reverb-Issues-And-Future-Fix]].
+- Esta versao e um checkpoint documentado; o projeto ainda vai evoluir bastante antes de um release publico final.

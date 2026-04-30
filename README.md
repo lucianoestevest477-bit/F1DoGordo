@@ -1,96 +1,85 @@
 # F1 do Gordo
 
-Esqueleto inicial de plugin de audio profissional em C++20 usando JUCE, CMake e VST3.
+**F1 do Gordo** is a VST3 audio plugin by **Gordo Audio**.
 
-Fabricante: **Gordo Audio**  
-Projeto: **F1DoGordo**  
-Plugin: **F1 do Gordo**
+Current checkpoint: **v0.1.0-wheel-prototype**.
 
-## Documentacao
+This is a development build. The plugin is usable as a stable checkpoint for testing in FL Studio, but the DSP, UI artwork, installer and release flow will continue to evolve.
 
-A documentacao principal do projeto agora fica em formato Obsidian Vault:
+## Current State
 
-- [Docs/00-Home.md](Docs/00-Home.md)
+- JUCE/CMake/C++20 VST3 plugin.
+- Custom Wheel UI with interactive pointers.
+- APVTS-backed controls for automation and host mapping.
+- Functional input/output gain, bypass, compressor, air exciter, delay and reverb.
+- Delay Wheel mapping uses `delaySend` as return/level and `delayNoteDivision` for synced timing.
+- Reverb Wheel mapping uses `reverbEnabled` and `reverbMix`, with an internal musical plate/hall-style prototype voicing.
+- Main validation host: FL Studio on Windows.
 
-Abra a pasta do projeto no Obsidian ou navegue pelos arquivos Markdown em `Docs/`.
+## Requirements
 
-## Estado atual
+- Visual Studio 2022 Build Tools, including the C++ desktop workload.
+- CMake 3.22 or newer.
+- Git.
+- FL Studio for host testing.
 
-- Base compilavel em C++20 com JUCE + CMake.
-- Formato VST3.
-- Audio pass-through limpo por padrao.
-- Parametros expostos via `AudioProcessorValueTreeState`.
-- Estrutura modular preparada para:
-  - Channel / EQ
-  - FET Compressor
-  - Air Exciter
-  - Delay
-  - Reverb
-- UI custom inicial inspirada em cockpit/volante tecnico de F1, sem copiar interfaces, logos, presets ou layouts comerciais.
-- Janela minima de 1200x700 e redimensionavel.
+## Build on Windows
 
-## Compilar no Windows
-
-Requisitos:
-
-- Visual Studio 2022 com workload "Desktop development with C++"
-- CMake 3.22 ou superior
-- Git
-
-Passos:
+From a Developer PowerShell or a terminal with Visual Studio tools available:
 
 ```powershell
+git clone <repo-url>
+cd F1DoGordo-functional
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release
 ```
 
-O CMake baixa o JUCE automaticamente via `FetchContent`.
+CMake downloads JUCE automatically through `FetchContent`.
 
-O VST3 final sera gerado em uma pasta parecida com:
+The built VST3 bundle is generated here:
 
 ```text
-build/F1DoGordo_artefacts/Release/VST3/F1 do Gordo.vst3
+build\F1DoGordo_artefacts\Release\VST3\F1 do Gordo.vst3
 ```
 
-## Testar no FL Studio
+## Install in FL Studio
 
-1. Compile em `Release`.
-2. Copie `F1 do Gordo.vst3` para:
+Copy the whole VST3 bundle folder:
+
+```text
+build\F1DoGordo_artefacts\Release\VST3\F1 do Gordo.vst3
+```
+
+to:
 
 ```text
 C:\Program Files\Common Files\VST3
 ```
 
-3. Abra o FL Studio.
-4. Va em `Options > Manage plugins`.
-5. Confirme que `C:\Program Files\Common Files\VST3` esta na lista de busca.
-6. Clique em `Find plugins`.
-7. Abra o plugin `F1 do Gordo` em um mixer insert.
-8. Toque audio atraves do insert e confirme que o sinal passa limpo.
+You may need administrator permission to copy into `Program Files`.
 
-## Parametros globais
+Then open FL Studio:
 
-- `inputGainDb`
-- `outputGainDb`
-- `globalBypass`
-- `channelEnabled`
-- `compEnabled`
-- `airEnabled`
-- `delayEnabled`
-- `reverbEnabled`
-- `channelMix`
-- `compMix`
-- `airMix`
-- `delaySend`
-- `reverbSend`
-- `masterWidth`
+1. Go to `Options > Manage plugins`.
+2. Confirm `C:\Program Files\Common Files\VST3` is included in the scan paths.
+3. Click `Find plugins`.
+4. Load `F1 do Gordo` on a Mixer Insert.
 
-Observacao: o Delay nesta etapa nao possui parametros `dryWet`, `output` ou `analog`.
+## Release ZIP Install
 
-## Proxima etapa sugerida
+For packaged releases, download the ZIP from the GitHub Release page, extract it, and follow [INSTALL.md](INSTALL.md).
 
-Implementar DSP real por modulo mantendo a ordem:
+## Documentation
 
-```text
-Input -> Channel -> FET Compressor -> Air Exciter -> Delay -> Reverb -> Output
-```
+Project documentation lives in `Docs/`:
+
+- [Docs/00-Home.md](Docs/00-Home.md)
+- [Docs/09-Roadmap.md](Docs/09-Roadmap.md)
+- [Docs/10-Changelog.md](Docs/10-Changelog.md)
+
+## Development Notes
+
+- `build/`, `Release/` and local reference audio are not committed.
+- `ReferenceAudio/` is local-only and must not be published.
+- APVTS parameter IDs are treated as a compatibility contract for automation and hardware mapping.
+- Before any public release, replace prototype/reference artwork with original final artwork.

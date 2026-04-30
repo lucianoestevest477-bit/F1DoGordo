@@ -1,7 +1,9 @@
 build/
+Release/
 .vs/
 out/
 .obsidian/
+ReferenceAudio/
 CMakeFiles/
 CMakeCache.txt
 
@@ -11,3 +13,9 @@ CMakeCache.txt
 *.vcxproj.filters
 *.vcxproj.user
 *.sln
+*.wav
+*.mp3
+*.flac
+*.log
+Untitled.md
+Untitled 1.md

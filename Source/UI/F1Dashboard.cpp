@@ -528,6 +528,8 @@ juce::Colour F1Dashboard::getWheelControlColour(WheelControl control) const
         case WheelControl::threshold:
         case WheelControl::midAir:
         case WheelControl::highAir:
+        case WheelControl::reverbEnabled:
+        case WheelControl::reverbMix:
             return F1Theme::green();
 
         case WheelControl::output:
@@ -587,13 +589,15 @@ GordoKnob* F1Dashboard::getKnobForWheelControl(WheelControl control) noexcept
         case WheelControl::gain:      return &compOutput;
         case WheelControl::midAir:    return &airMidAir;
         case WheelControl::highAir:   return &airHighAir;
-        case WheelControl::feedback:  return &delayFeedback;
+        case WheelControl::feedback:  return &delayPageSend;
         case WheelControl::timing:    return &delayDivision;
+        case WheelControl::reverbMix: return &reverbPageMix;
         case WheelControl::none:
         case WheelControl::bypass:
         case WheelControl::compEnabled:
         case WheelControl::airEnabled:
         case WheelControl::delayEnabled:
+        case WheelControl::reverbEnabled:
         case WheelControl::ab:
         case WheelControl::save:
             break;
@@ -606,6 +610,9 @@ GordoButton* F1Dashboard::getButtonForWheelControl(WheelControl control) noexcep
 {
     if (control == WheelControl::bypass)
         return &globalBypass;
+
+    if (control == WheelControl::reverbEnabled)
+        return &reverbEnabled;
 
     return nullptr;
 }
@@ -712,8 +719,20 @@ void F1Dashboard::setWheelParameterNormalized(WheelControl control, float normal
     if (parameter == nullptr)
         return;
 
-    const auto oldValue = parameter->getValue();
     const auto newValue = juce::jlimit(0.0f, 1.0f, normalizedValue);
+
+    if (control == WheelControl::feedback)
+    {
+        setParameterNormalizedById("delayEnabled", 1.0f, "DELAY return ENABLE");
+        primeDelayFeedbackForWheel();
+    }
+    else if (control == WheelControl::reverbMix && newValue > 0.0001f)
+    {
+        setParameterNormalizedById("reverbEnabled", 1.0f, "REVERB mix ENABLE");
+        primeWheelReverbVoicingIfFactoryState();
+    }
+
+    const auto oldValue = parameter->getValue();
     parameter->setValueNotifyingHost(newValue);
     logWheelFunctionalMapping(control, oldValue, newValue);
 
@@ -790,6 +809,10 @@ void F1Dashboard::logWheelFunctionalMapping(WheelControl control, float oldNorma
                 case WheelControl::delayEnabled:
                     return "delayEnabled";
 
+                case WheelControl::reverbEnabled:
+                case WheelControl::reverbMix:
+                    return "reverbEnabled";
+
                 default:
                     return {};
             }
@@ -816,6 +839,10 @@ void F1Dashboard::logWheelFunctionalMapping(WheelControl control, float oldNorma
                 case WheelControl::timing:
                 case WheelControl::delayEnabled:
                     return "delaySend";
+
+                case WheelControl::reverbEnabled:
+                case WheelControl::reverbMix:
+                    return "reverbMix";
 
                 default:
                     return {};
@@ -899,11 +926,58 @@ void F1Dashboard::logWheelFunctionalMapping(WheelControl control, float oldNorma
                                  + " airHighAir=" + juce::String(getParameterRawValueById("airHighAir") * 100.0f, 1) + "%"
                                  + " effectiveMidAir=" + juce::String(effectiveMidAir * 100.0f, 1) + "%"
                                  + " effectiveHighAir=" + juce::String(effectiveHighAir * 100.0f, 1) + "%";
+        auto getDelayDivisionText = [this]
+        {
+            switch (juce::jlimit(0, 7, juce::roundToInt(getParameterRawValueById("delayNoteDivision"))))
+            {
+                case 1: return juce::String("1/8");
+                case 2: return juce::String("1/8D");
+                case 3: return juce::String("1/8T");
+                case 4: return juce::String("1/16");
+                case 5: return juce::String("1/16D");
+                case 6: return juce::String("1/16T");
+                case 7: return juce::String("1/2");
+                default: return juce::String("1/4");
+            }
+        };
+        const auto delayBridgeText = " delayEnabled=" + juce::String(getParameterRawValueById("delayEnabled"), 1)
+                                   + " delaySend=" + juce::String(getParameterRawValueById("delaySend") * 100.0f, 1) + "%"
+                                   + " delayFeedbackInternal=" + juce::String(getParameterRawValueById("delayFeedback") * 100.0f, 1) + "%"
+                                   + " delayNoteDivision=" + getDelayDivisionText()
+                                   + " delaySync=" + juce::String(getParameterRawValueById("delaySyncEnabled"), 1)
+                                   + " delayTimeMsParam=" + juce::String(getParameterRawValueById("delayTimeMs"), 1);
+        const auto reverbBridgeText = " reverbEnabled=" + juce::String(getParameterRawValueById("reverbEnabled"), 1)
+                                    + " reverbMix=" + juce::String(getParameterRawValueById("reverbMix") * 100.0f, 1) + "%"
+                                    + " reverbDecaySec=" + juce::String(getParameterRawValueById("reverbDecaySec"), 2)
+                                    + " reverbSize=" + juce::String(getParameterRawValueById("reverbSize") * 100.0f, 1) + "%"
+                                    + " reverbPredelayMs=" + juce::String(getParameterRawValueById("reverbPredelayMs"), 1)
+                                    + " reverbLowCutHz=" + juce::String(getParameterRawValueById("reverbLowCutHz"), 0)
+                                    + " reverbHighCutHz=" + juce::String(getParameterRawValueById("reverbHighCutHz"), 0)
+                                    + " reverbHighDampDb=" + juce::String(getParameterRawValueById("reverbHighDampDb"), 1)
+                                    + " reverbBypass=" + juce::String(getParameterRawValueById("globalBypass"), 1);
+        const auto moduleDetailText = [control, &delayBridgeText, &reverbBridgeText]
+        {
+            switch (control)
+            {
+                case WheelControl::feedback:
+                case WheelControl::timing:
+                case WheelControl::delayEnabled:
+                    return delayBridgeText;
+
+                case WheelControl::reverbEnabled:
+                case WheelControl::reverbMix:
+                    return reverbBridgeText;
+
+                default:
+                    return juce::String();
+            }
+        }();
 
         debugOverlayText = label + " -> " + (parameterId.isNotEmpty() ? parameterId : juce::String("(none)")) + "\n"
                          + "old: " + valueText(oldNormalized) + "  new: " + valueText(newNormalized) + "\n"
                          + "module: " + moduleStateValue + "  mix/send: " + mixSendValue + "\n"
-                         + foundText;
+                         + foundText
+                         + (moduleDetailText.isNotEmpty() ? "\n" + moduleDetailText : juce::String());
         debugOverlayUntilMs = juce::Time::getMillisecondCounter() + 3600u;
 
         DBG("Wheel UI mapping: " + label
@@ -918,7 +992,8 @@ void F1Dashboard::logWheelFunctionalMapping(WheelControl control, float oldNorma
             + " " + moduleEnabledText
             + " " + mixSendText
             + compressorBridgeText
-            + airBridgeText);
+            + airBridgeText
+            + moduleDetailText);
     }
 }
 
@@ -1054,6 +1129,12 @@ void F1Dashboard::setTimingStepIndex(int index)
 
     constexpr std::array<double, 4> timingValues { 0.0, 1.0, 3.0, 4.0 };
     const auto safeIndex = juce::jlimit(0, static_cast<int>(timingValues.size()) - 1, index);
+    const auto currentIndex = getTimingStepIndex(getWheelParameterNormalized(WheelControl::timing));
+
+    if (safeIndex == currentIndex)
+        return;
+
+    primeDelayTimingForWheel();
     setWheelChoiceIndex(WheelControl::timing, juce::roundToInt(timingValues[static_cast<size_t>(safeIndex)]));
 }
 
@@ -1116,6 +1197,76 @@ void F1Dashboard::setParameterNormalizedById(const juce::String& parameterId,
     }
 }
 
+void F1Dashboard::setParameterActualValueById(const juce::String& parameterId,
+                                              float actualValue,
+                                              const juce::String& labelForDebug)
+{
+    if (auto* parameter = getParameterById(parameterId))
+        setParameterNormalizedById(parameterId, parameter->convertTo0to1(actualValue), labelForDebug);
+}
+
+void F1Dashboard::primeDelayFeedbackForWheel()
+{
+    if (getParameterRawValueById("delayFeedback") < 0.12f)
+        setParameterNormalizedById("delayFeedback", 0.38f, "DELAY auto INTERNAL FEEDBACK");
+}
+
+void F1Dashboard::primeDelayTimingForWheel()
+{
+    setParameterNormalizedById("delayEnabled", 1.0f, "DELAY timing ENABLE");
+    setParameterNormalizedById("delaySyncEnabled", 1.0f, "DELAY timing SYNC");
+
+    if (getParameterRawValueById("delaySend") <= 0.0001f)
+        setParameterNormalizedById("delaySend", 0.35f, "DELAY timing RETURN");
+
+    primeDelayFeedbackForWheel();
+}
+
+void F1Dashboard::primeWheelReverbVoicingIfFactoryState()
+{
+    auto nearRawValue = [this] (const juce::String& parameterId, float targetValue, float tolerance)
+    {
+        return std::abs(getParameterRawValueById(parameterId) - targetValue) <= tolerance;
+    };
+
+    const auto looksLikeFactoryPreset = juce::roundToInt(getParameterRawValueById("reverbMode")) == 1
+                                     && juce::roundToInt(getParameterRawValueById("reverbColor")) == 0
+                                     && nearRawValue("reverbPredelayMs", 14.0f, 0.5f)
+                                     && nearRawValue("reverbDecaySec", 1.85f, 0.05f)
+                                     && nearRawValue("reverbSize", 0.50f, 0.02f);
+
+    const auto looksLikePreviousWheelPreset = juce::roundToInt(getParameterRawValueById("reverbMode")) == 4
+                                           && juce::roundToInt(getParameterRawValueById("reverbColor")) == 0
+                                           && nearRawValue("reverbPredelayMs", 26.0f, 1.0f)
+                                           && nearRawValue("reverbDecaySec", 2.55f, 0.08f)
+                                           && nearRawValue("reverbSize", 0.72f, 0.03f)
+                                           && nearRawValue("reverbLowCutHz", 190.0f, 8.0f);
+
+    if (! looksLikeFactoryPreset && ! looksLikePreviousWheelPreset)
+        return;
+
+    setParameterActualValueById("reverbPredelayMs", 46.0f, "REVERB wheel PREDELAY");
+    setParameterActualValueById("reverbDecaySec", 3.65f, "REVERB wheel DECAY");
+    setParameterNormalizedById("reverbSize", 0.82f, "REVERB wheel SIZE");
+    setParameterNormalizedById("reverbAttack", 0.02f, "REVERB wheel ATTACK");
+    setParameterNormalizedById("reverbEarly", 0.16f, "REVERB wheel EARLY");
+    setParameterNormalizedById("reverbLate", 0.94f, "REVERB wheel LATE");
+    setParameterActualValueById("reverbLowCutHz", 340.0f, "REVERB wheel LOW CUT");
+    setParameterActualValueById("reverbHighCutHz", 9200.0f, "REVERB wheel HIGH CUT");
+    setParameterActualValueById("reverbLowDampHz", 430.0f, "REVERB wheel LOW DAMP");
+    setParameterActualValueById("reverbHighDampDb", -10.5f, "REVERB wheel HIGH DAMP");
+    setParameterNormalizedById("reverbDiffusionEarly", 0.78f, "REVERB wheel EARLY DIFF");
+    setParameterNormalizedById("reverbDiffusionLate", 0.97f, "REVERB wheel LATE DIFF");
+    setParameterActualValueById("reverbModRate", 0.16f, "REVERB wheel MOD RATE");
+    setParameterNormalizedById("reverbModDepth", 0.20f, "REVERB wheel MOD DEPTH");
+    setParameterNormalizedById("reverbWidth", 0.98f, "REVERB wheel WIDTH");
+    setParameterActualValueById("reverbMode", 4.0f, "REVERB wheel MODE");
+    setParameterActualValueById("reverbColor", 0.0f, "REVERB wheel COLOR");
+    setParameterNormalizedById("reverbDucking", 0.06f, "REVERB wheel DUCKING");
+    setParameterNormalizedById("reverbMonoBass", 1.0f, "REVERB wheel MONO BASS");
+    setParameterNormalizedById("reverbTempoSyncPredelay", 0.0f, "REVERB wheel SYNC PRE");
+}
+
 void F1Dashboard::makeModuleAudibleIfNeeded(WheelControl control)
 {
     struct AudibleAmount
@@ -1126,10 +1277,11 @@ void F1Dashboard::makeModuleAudibleIfNeeded(WheelControl control)
         const char* label;
     };
 
-    static constexpr std::array<AudibleAmount, 3> audibleAmounts {{
+    static constexpr std::array<AudibleAmount, 4> audibleAmounts {{
         { WheelControl::compEnabled,  "compMix",   1.00f, "COMP auto MIX"  },
         { WheelControl::airEnabled,   "airMix",    1.00f, "AIR auto MIX"   },
-        { WheelControl::delayEnabled, "delaySend", 0.35f, "DELAY auto SEND" }
+        { WheelControl::delayEnabled, "delaySend", 0.35f, "DELAY auto SEND" },
+        { WheelControl::reverbEnabled, "reverbMix", 0.30f, "REVERB auto MIX" }
     }};
 
     for (const auto& amount : audibleAmounts)
@@ -1154,6 +1306,12 @@ void F1Dashboard::makeModuleAudibleIfNeeded(WheelControl control)
         {
             setParameterNormalizedById("airDrive", 0.5f, "AIR auto INTENSITY");
         }
+
+        if (control == WheelControl::delayEnabled)
+            primeDelayFeedbackForWheel();
+
+        if (control == WheelControl::reverbEnabled)
+            primeWheelReverbVoicingIfFactoryState();
 
         return;
     }
@@ -1272,6 +1430,15 @@ juce::String F1Dashboard::getWheelControlValueText(WheelControl control) const
     if (control == WheelControl::bypass)
         return getWheelParameterNormalized(control) >= 0.5f ? "ON" : "OFF";
 
+    if (control == WheelControl::reverbEnabled)
+        return getWheelParameterNormalized(control) >= 0.5f ? "ON" : "OFF";
+
+    if (control == WheelControl::feedback)
+        return juce::String(juce::roundToInt(getWheelParameterNormalized(control) * 100.0f)) + "%";
+
+    if (control == WheelControl::reverbMix)
+        return juce::String(juce::roundToInt(getWheelParameterNormalized(control) * 100.0f)) + "%";
+
     if (control == WheelControl::compEnabled || control == WheelControl::airEnabled || control == WheelControl::delayEnabled)
         return getModuleAudibleStateText(control);
 
@@ -1347,6 +1514,9 @@ juce::String F1Dashboard::getModuleAudibleStateText(WheelControl control) const
     if (control == WheelControl::delayEnabled)
         return "ON / SEND " + juce::String(getPercentValue("delaySend")) + "%";
 
+    if (control == WheelControl::reverbEnabled)
+        return "ON / MIX " + juce::String(getPercentValue("reverbMix")) + "%";
+
     return "ON";
 }
 
@@ -1367,7 +1537,7 @@ void F1Dashboard::loadWheelPointerImages()
         { WheelControl::gain,      "gain",      "compOutputDb",      imageFromMemory(BinaryData::gain_pointer_png,      BinaryData::gain_pointer_pngSize),      { 0.500f, 0.681f }, { 0.466f, 0.596f, 0.068f, 0.170f }, -135.0f,  135.0f, false },
         { WheelControl::midAir,    "midair",    "airMidAir",         imageFromMemory(BinaryData::midair_pointer_png,    BinaryData::midair_pointer_pngSize),    { 0.293f, 0.586f }, { 0.276f, 0.535f, 0.034f, 0.102f }, -135.0f,  135.0f, false },
         { WheelControl::highAir,   "highair",   "airHighAir",        imageFromMemory(BinaryData::highair_pointer_png,   BinaryData::highair_pointer_pngSize),   { 0.293f, 0.686f }, { 0.276f, 0.635f, 0.034f, 0.102f }, -135.0f,  135.0f, false },
-        { WheelControl::feedback,  "feedback",  "delayFeedback",     imageFromMemory(BinaryData::feedback_pointer_png,  BinaryData::feedback_pointer_pngSize),  { 0.710f, 0.551f }, { 0.692f, 0.500f, 0.036f, 0.102f }, -135.0f,  135.0f, false },
+        { WheelControl::feedback,  "feedback",  "delaySend",         imageFromMemory(BinaryData::feedback_pointer_png,  BinaryData::feedback_pointer_pngSize),  { 0.710f, 0.551f }, { 0.692f, 0.500f, 0.036f, 0.102f }, -135.0f,  135.0f, false },
         { WheelControl::timing,    "timing",    "delayNoteDivision", imageFromMemory(BinaryData::timing_pointer_png,    BinaryData::timing_pointer_pngSize),    { 0.710f, 0.687f }, { 0.692f, 0.636f, 0.036f, 0.102f },  -90.0f,  180.0f, true  }
     }};
 }
@@ -1471,18 +1641,50 @@ void F1Dashboard::paint(juce::Graphics& g)
 
             if (debugWheelZones || isHovered || isActive || isToggled)
             {
-                const auto activeAlpha = isActive || isToggled ? 0.18f : 0.09f;
-                g.setColour(accent.withAlpha(debugWheelZones ? 0.08f : activeAlpha));
+                const auto isReverbAmount = spec.control == WheelControl::reverbMix;
+                const auto fillAlpha = debugWheelZones ? 0.055f
+                                     : isActive ? 0.075f
+                                     : isToggled ? 0.090f
+                                     : isHovered ? 0.024f
+                                                 : 0.0f;
+                const auto strokeAlpha = debugWheelZones ? 0.28f
+                                       : (isActive || isToggled) ? 0.46f
+                                                                : 0.20f;
+
+                g.setColour(accent.withAlpha(isReverbAmount && ! isActive && ! debugWheelZones ? fillAlpha * 0.35f
+                                                                                                 : fillAlpha));
                 if (spec.roundHitZone)
                     g.fillEllipse(area);
                 else
                     g.fillRoundedRectangle(area, 10.0f);
 
-                g.setColour(accent.withAlpha(isActive || isToggled ? 0.74f : 0.38f));
+                g.setColour(accent.withAlpha(strokeAlpha));
                 if (spec.roundHitZone)
-                    g.drawEllipse(area.reduced(1.0f), isActive || isToggled ? 1.8f : 1.1f);
+                    g.drawEllipse(area.reduced(1.0f), isActive || isToggled ? 1.15f : 0.75f);
                 else
-                    g.drawRoundedRectangle(area.reduced(1.0f), 9.0f, isActive || isToggled ? 1.8f : 1.1f);
+                    g.drawRoundedRectangle(area.reduced(1.0f), 9.0f, isActive || isToggled ? 1.05f : 0.7f);
+            }
+        }
+
+        {
+            const auto reverbArea = getWheelControlBounds(WheelControl::reverbMix);
+            const auto reverbMix = getParameterNormalizedById("reverbMix");
+            const auto showReverbMeter = reverbMix > 0.001f
+                                      || hoveredWheelControl == WheelControl::reverbMix
+                                      || activeWheelControl == WheelControl::reverbMix
+                                      || debugWheelZones;
+
+            if (showReverbMeter && ! reverbArea.isEmpty())
+            {
+                const auto accent = F1Theme::green();
+                const auto activeAmount = activeWheelControl == WheelControl::reverbMix ? 1.0f : 0.0f;
+                auto rail = reverbArea.reduced(reverbArea.getWidth() * 0.36f, reverbArea.getHeight() * 0.12f);
+                auto fill = rail.withTrimmedTop(rail.getHeight() * (1.0f - juce::jlimit(0.0f, 1.0f, reverbMix)));
+
+                g.setColour(accent.withAlpha(0.16f + activeAmount * 0.12f));
+                g.fillRoundedRectangle(fill, 3.0f);
+                g.setColour(accent.withAlpha(0.20f + activeAmount * 0.18f));
+                g.drawRoundedRectangle(rail, 3.0f, 0.7f);
             }
         }
 

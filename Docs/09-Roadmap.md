@@ -1,5 +1,13 @@
 # Roadmap
 
+## Checkpoint atual
+
+Status: `v0.1.0-wheel-prototype`.
+
+Esta versao salva a Wheel UI funcional como checkpoint estavel para teste interno e GitHub Release. O projeto ainda vai evoluir em DSP, arte, instalador e polimento geral.
+
+`ReferenceAudio/` e uma pasta local de trabalho para A/B e nao deve ser publicada ou commitada.
+
 ## Fase 9: Documentacao
 
 Status: concluida inicialmente em `7f0a6b9 Add Obsidian documentation vault`; este vault deve ser mantido vivo a cada fase.
@@ -22,9 +30,8 @@ Status: concluida inicialmente em `7f0a6b9 Add Obsidian documentation vault`; es
 
 ## Fase 12: Reverb V2
 
-- Revisar ReverbModule.
-- Corrigir o ponto principal: o usuario nao gostou do Reverb atual.
-- Buscar um reverb digital simples, claro e estavel.
+- Continuar refinando ReverbModule a partir do checkpoint A/B.
+- Buscar um reverb digital simples, claro, estavel e mais profissional.
 - Preservar IDs existentes sempre que possivel.
 - Documentar qualquer mudanca em [[08-Reverb-Issues-And-Future-Fix]].
 

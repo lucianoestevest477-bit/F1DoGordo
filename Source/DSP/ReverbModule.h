@@ -90,6 +90,8 @@ private:
 
     static constexpr auto internalChannels = 2;
     static constexpr auto tankLineCount = 8;
+    static constexpr auto diffuserStageCount = 4;
+    static constexpr auto diffuserLineCount = internalChannels * diffuserStageCount;
 
     float getParameterValue(std::atomic<float>* parameter, float fallback) const noexcept;
     int getChoiceIndex(std::atomic<float>* parameter, int fallback, int maxIndex) const noexcept;
@@ -100,6 +102,7 @@ private:
     float getPredelayMs() const noexcept;
     float readPredelaySample(int channel, float delaySamples) const noexcept;
     float readTankSample(int line, float delaySamples) const noexcept;
+    float processDiffuserStage(float input, int line, int delaySamples, float feedbackGain) noexcept;
     float processFeedbackFilters(float input, int line, float highPassAlpha, float lowPassCoefficient) noexcept;
     float processWetFilters(float input, int channel, float highPassAlpha, float lowPassCoefficient) noexcept;
     float applyColor(float input, float drive, float loFi) const noexcept;
@@ -109,10 +112,13 @@ private:
     ParameterPointers parameters;
 
     juce::AudioBuffer<float> predelayBuffer;
+    juce::AudioBuffer<float> diffuserBuffer;
     juce::AudioBuffer<float> tankBuffer;
     int predelayBufferSize = 0;
+    int diffuserBufferSize = 0;
     int tankBufferSize = 0;
     int predelayWritePosition = 0;
+    std::array<int, diffuserLineCount> diffuserWritePositions {};
     int tankWritePosition = 0;
 
     juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> mix;
@@ -123,9 +129,11 @@ private:
     std::array<float, tankLineCount> feedbackHighPassX1 {};
     std::array<float, tankLineCount> feedbackHighPassY1 {};
     std::array<float, tankLineCount> feedbackLowPassY1 {};
+    std::array<float, tankLineCount> feedbackLowPassY2 {};
     std::array<float, internalChannels> wetHighPassX1 {};
     std::array<float, internalChannels> wetHighPassY1 {};
     std::array<float, internalChannels> wetLowPassY1 {};
+    std::array<float, internalChannels> wetLowPassY2 {};
     std::array<float, internalChannels> monoBassLowPass {};
 
     double hostBpm = 120.0;
