@@ -12,8 +12,26 @@ This guide is for installing the packaged **F1 do Gordo** VST3 release in FL Stu
 ## Download
 
 1. Open the GitHub Release page.
-2. Download `F1-do-Gordo-v0.1.0-wheel-prototype.zip`.
-3. Extract the ZIP to a normal folder such as Desktop or Downloads.
+2. Download either the Windows installer `.exe` or the manual ZIP package.
+3. If using the ZIP, extract it to a normal folder such as Desktop or Downloads.
+
+## Installing with the Windows Installer
+
+1. Download `F1-do-Gordo-v0.1.0-wheel-prototype-installer.exe`.
+2. Close FL Studio before installing or replacing an older version.
+3. Run the installer.
+4. If Windows asks for administrator permission, allow it.
+5. When setup finishes, open FL Studio.
+6. Go to `Options > Manage plugins`.
+7. Click `Find plugins`.
+
+The installer copies the VST3 plugin to:
+
+```text
+C:\Program Files\Common Files\VST3\F1 do Gordo.vst3
+```
+
+The installer is not a standalone app launcher. It only installs the VST3 plugin for compatible hosts.
 
 ## Manual Installation
 

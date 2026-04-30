@@ -18,6 +18,7 @@ The build is intended for Windows/FL Studio testing and development feedback. It
 - Global Bypass.
 - Public README, install guide, release notes and notice file.
 - Local release ZIP workflow for manual GitHub Release attachment.
+- Inno Setup installer script for generating a Windows `.exe` installer.
 
 ## Changed
 
@@ -45,7 +46,14 @@ The build is intended for Windows/FL Studio testing and development feedback. It
 
 ## Installation
 
-Copy the full folder:
+This release can include two install options:
+
+- Manual ZIP package: `F1-do-Gordo-v0.1.0-wheel-prototype.zip`.
+- Windows installer: `F1-do-Gordo-v0.1.0-wheel-prototype-installer.exe`.
+
+The installer is recommended for most users. It copies the VST3 bundle into the standard Windows VST3 folder.
+
+For manual installation, copy the full folder:
 
 ```text
 F1 do Gordo.vst3
