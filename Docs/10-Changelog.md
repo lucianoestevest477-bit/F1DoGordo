@@ -2,6 +2,16 @@
 
 ## v0.1.0-wheel-prototype
 
+- Public prototype documentation polished for GitHub.
+- Wheel UI integration documented.
+- Interactive pointers documented.
+- Simplified module controls documented.
+- Reverb and delay behavior corrections documented.
+- Release ZIP created for manual GitHub Release attachment.
+- README, INSTALL, RELEASE_NOTES and NOTICE prepared for public repository use.
+
+## Previous Checkpoint Work
+
 - Wheel UI final integrada ao prototipo atual.
 - Ponteiros interativos.
 - APVTS direto para automacao e futuro hardware mapping.
@@ -9,7 +19,7 @@
 - Delay com RETURN/LEVEL e TIMING corrigidos.
 - Reverb refinado por A/B local.
 - ZIP de release gerado para GitHub Release.
-- Documentacao publica adicionada: README, INSTALL, RELEASE_NOTES e NOTICE.
+- Documentacao publica adicionada.
 
 ## Timeline de fases e commits
 
@@ -35,16 +45,15 @@
 - `63e816e` Make cockpit UI dark oval and neon premium
 - `7f0a6b9` Add Obsidian documentation vault
 
-## Marcos principais
+## Release Notes
 
 - Initial skeleton: base C++20/JUCE/CMake/VST3.
-- Build metadata: bundle ID e arquivos gerados ignorados.
-- APVTS controls: knobs e botoes ligados a parametros reais.
-- Channel EQ: HPF, LPF, EQ de 4 bandas, trim, phase, drive e mix.
-- Compressor: FET compressor com threshold, ratio, attack, release, mix e GR.
-- Air: exciter com amount, mid/high air, intensity, density, dynamic, de-ess e output.
-- Delay: delay send interno com sync, modos, feedback, filtros, ducking, freeze e width.
-- Reverb: algoritmo funcional e refinado para checkpoint, ainda em evolucao.
-- Factory default neutral: instancia nova deve abrir em unity/pass-through.
-- UI Wheel: evolucao para volante interativo com hotspots e ponteiros rotativos.
-- Documentation vault: organizacao Markdown em `Docs/`, com arquitetura, APVTS, modulos, UI, hardware mapping, roadmap, changelog e ADRs.
+- APVTS controls: knobs and buttons linked to real parameters.
+- Channel EQ: HPF, LPF, 4-band EQ, trim, phase, drive and mix.
+- Compressor: FET-style compressor controls and metering.
+- Air: exciter module with mid/high air controls.
+- Delay: send-based delay with sync, timing, feedback, filters, ducking, freeze and width.
+- Reverb: functional prototype reverb, still in polish.
+- Factory default neutral: new instance should open close to unity/pass-through.
+- UI Wheel: interactive wheel with hotspots and rotating pointers.
+- Documentation vault: Markdown docs for architecture, APVTS, modules, UI, mapping, roadmap and changelog.

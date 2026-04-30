@@ -4,29 +4,27 @@
 
 Status: `v0.1.0-wheel-prototype`.
 
-This version saves the functional Wheel UI prototype as a stable development checkpoint for GitHub and FL Studio testing. The project is still experimental and will continue to evolve before any final public or commercial release.
+This version saves the functional Wheel UI prototype as a public GitHub checkpoint for FL Studio testing. It is still experimental and not ready for commercial distribution.
 
-`ReferenceAudio/` is a local A/B development folder and must not be published or committed.
+## Upcoming Phases
 
-## Next Phases
-
-- Original artwork with no visual dependency on real-world brands.
-- Professional Delay inspired by analog/tape-style behavior.
-- More professional and predictable Compressor behavior.
-- Air polish.
-- Reverb polish using A/B references.
-- Presets.
-- Real A/B.
-- SAVE / preset manager.
-- Official installer.
-- Testing in additional hosts.
+- Replace temporary wheel artwork with fully original design.
+- Reverb A/B polish.
+- H-Delay inspired delay voicing.
+- Fresh Air inspired air polish.
+- C1/SSL inspired compressor polish.
+- Real A/B system.
+- Save/preset manager.
+- Installer.
 - CPU optimization.
+- Multi-host testing.
 
-## Documentation
+## Documentation Rules
 
-- Keep this vault updated whenever parameters, automation behavior, UI behavior, DSP or release packaging changes.
+- Keep public documentation clear enough for a new user to install and test the plugin.
 - Keep APVTS IDs stable unless a breaking-change phase is explicitly planned.
 - Document release checkpoints in [[10-Changelog]].
+- Keep legal/trademark notes visible in README and NOTICE.
 
 ## Release Hygiene
 
@@ -34,4 +32,8 @@ This version saves the functional Wheel UI prototype as a stable development che
 - Do not commit `Release/`.
 - Do not commit `ReferenceAudio/`.
 - Do not commit WAV/MP3/FLAC reference files.
-- Do not publish prototype/reference artwork as final commercial artwork.
+- Do not publish prototype artwork as final commercial artwork.
+
+## Brand Reference Note
+
+Names such as H-Delay, Fresh Air, C1 and SSL are roadmap shorthand for study direction and quality targets only. They do not imply affiliation, endorsement, copied presets, copied algorithms or included third-party assets.

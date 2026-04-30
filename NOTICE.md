@@ -1,25 +1,13 @@
 # Notice
 
-Project: **F1 do Gordo**
+**F1 do Gordo** by **Gordo Audio** is an experimental prototype.
 
-Author / Manufacturer: **Gordo Audio**
+This project is independent. It is not affiliated with, sponsored by, endorsed by, approved by, or associated with any third-party brand referenced in documentation or development context.
 
-Status: **experimental prototype**
+Current visual artwork is temporary/prototypical and is not commercial-release artwork. A fully original design is required before commercial distribution.
 
-## Independence Notice
+Third-party product, plugin, brand, or artist references are used only as descriptive study references, development direction, or quality targets.
 
-This project is independent. It is not affiliated with, sponsored by, endorsed by, approved by or associated with Ferrari, Formula 1, FIA, Thrustmaster, Waves, Valhalla DSP, Slate Digital or any other brand mentioned in the project.
+This project is not commercially ready.
 
-## Trademark and Reference Notice
-
-Brand, product and plugin names may appear in repository notes or development context only as descriptive references for study, sound-quality goals, visual direction or engineering discussion.
-
-No proprietary code, proprietary algorithm or commercial preset has been copied into this project.
-
-## Artwork Notice
-
-The current visual artwork is temporary/prototype artwork. Fully original artwork will be required before any commercial distribution or final public release.
-
-## Reference Audio Notice
-
-`ReferenceAudio/` is a local development folder used only for private A/B listening and analysis. It is ignored by Git and is not part of the public project or release package.
+`ReferenceAudio/` is a private local development folder and is not distributed with the public repository or release package.

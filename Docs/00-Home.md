@@ -2,7 +2,28 @@
 
 This vault documents **F1 do Gordo** for technical continuity, release checkpoints, architecture, testing and future phases.
 
-## Index
+## Current Checkpoint
+
+- Version: `v0.1.0-wheel-prototype`.
+- Status: experimental public prototype.
+- Main host target: FL Studio on Windows.
+- Local release ZIP: `Release/F1-do-Gordo-v0.1.0-wheel-prototype.zip`.
+- Manual install target: `C:\Program Files\Common Files\VST3`.
+
+## What Exists Now
+
+- Interactive Wheel UI.
+- Rotating pointer controls.
+- Direct APVTS mapping for automation and future controller mapping.
+- Basic Compressor module.
+- Basic Air module.
+- Basic Delay module.
+- Basic Reverb module.
+- Global Bypass.
+- Public README, INSTALL, RELEASE_NOTES and NOTICE files.
+- Release ZIP workflow for GitHub Releases.
+
+## Documentation Index
 
 - [[01-Project-Overview]]
 - [[02-Build-And-Test]]
@@ -30,35 +51,20 @@ This vault documents **F1 do Gordo** for technical continuity, release checkpoin
 - [[decisions/0003-Factory-Default-Neutral]]
 - [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]]
 
-## Current Checkpoint
+## Release Hygiene
 
-Current checkpoint: `v0.1.0-wheel-prototype`.
+- `build/` is local build output and must not be committed.
+- `Release/` is local packaging output and must not be committed.
+- `ReferenceAudio/` is local-only and must not be published.
+- WAV/MP3/FLAC reference files must not be committed.
 
-This version documents the current public prototype state:
+## Next Steps
 
-- Interactive Wheel UI.
-- Rotating pointer graphics.
-- Direct APVTS mapping for automation and future controller mapping.
-- Basic Compressor, Air, Delay and Reverb modules.
-- Public README, install guide, release notes and notices.
-- Release ZIP workflow for GitHub Releases.
-
-## Current Status
-
-- Plugin format: VST3.
-- Main validation host: FL Studio on Windows.
-- Factory default remains intended to be neutral/pass-through.
-- IDs APVTS are treated as a compatibility contract.
-- Reverb has been refined by local A/B work, but will continue to evolve.
-- `ReferenceAudio/` is local-only, ignored by Git and must not be published.
-
-## Next Major Phase
-
-The next major public-facing phase is replacing temporary/prototype visual artwork with fully original artwork that has no dependency on real-world brands or protected visual identities.
-
-## Critical Notes
-
-- This is a development checkpoint, not a final commercial release.
-- The project will continue to evolve in DSP, presets, artwork, release packaging and host compatibility.
-- Delay amount is controlled by `delaySend` / RETURN, not a separate `dryWet`, `output` or `analog` parameter. See [[decisions/0002-Delay-No-DryWet-Output-Analog]].
-- The UI must remain host-automation/controller-mapping friendly. See [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]].
+- Replace temporary wheel artwork with a fully original design.
+- Continue Reverb A/B polish.
+- Refine Delay, Air and Compressor voicing.
+- Add real A/B.
+- Add Save/preset manager.
+- Build installer.
+- Test additional hosts.
+- Optimize CPU usage.
