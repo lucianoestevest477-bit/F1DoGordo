@@ -1,31 +1,50 @@
 # F1 do Gordo
 
-**F1 do Gordo** is a VST3 audio plugin by **Gordo Audio**.
+**F1 do Gordo** is an experimental VST3 audio plugin by **Gordo Audio**.
 
-Current checkpoint: **v0.1.0-wheel-prototype**.
+Current version: **v0.1.0-wheel-prototype**.
 
-This is a development build. The plugin is usable as a stable checkpoint for testing in FL Studio, but the DSP, UI artwork, installer and release flow will continue to evolve.
+This checkpoint captures the current wheel-first interactive prototype: a custom visual control surface with rotating pointers, APVTS-backed automation, and early DSP modules for mixing, color and space. It is intended for development testing in FL Studio, not as a final commercial release.
 
-## Current State
+## Features
 
-- JUCE/CMake/C++20 VST3 plugin.
-- Custom Wheel UI with interactive pointers.
-- APVTS-backed controls for automation and host mapping.
-- Functional input/output gain, bypass, compressor, air exciter, delay and reverb.
-- Delay Wheel mapping uses `delaySend` as return/level and `delayNoteDivision` for synced timing.
-- Reverb Wheel mapping uses `reverbEnabled` and `reverbMix`, with an internal musical plate/hall-style prototype voicing.
-- Main validation host: FL Studio on Windows.
+- INPUT and OUTPUT gain.
+- Compressor controls: THRESHOLD, RATIO, ATTACK, RELEASE, GAIN.
+- AIR controls: MID AIR and HIGH AIR.
+- DELAY controls: RETURN/LEVEL and TIMING.
+- REVERB controls: ON/OFF and MIX.
+- BYPASS.
+- Wheel UI with interactive hotspots and pointer graphics.
+- Direct APVTS parameter mapping for host automation and future controller mapping.
 
-## Requirements
+## Stack
 
-- Visual Studio 2022 Build Tools, including the C++ desktop workload.
-- CMake 3.22 or newer.
-- Git.
-- FL Studio for host testing.
+- C++20.
+- JUCE.
+- CMake.
+- VST3.
+- Windows.
+- FL Studio as the main validation host.
+
+## Prototype Status
+
+This is a public development checkpoint, not a final product.
+
+- DSP is functional but still being refined.
+- Delay, compressor, air and reverb will continue to evolve.
+- A/B and SAVE are currently placeholders.
+- The current visual artwork is temporary/prototype artwork.
+- Before any commercial distribution or final public release, the project needs fully original final artwork and additional host testing.
 
 ## Build on Windows
 
-From a Developer PowerShell or a terminal with Visual Studio tools available:
+Requirements:
+
+- Visual Studio 2022 Build Tools with the C++ desktop workload.
+- CMake 3.22 or newer.
+- Git.
+
+Build commands:
 
 ```powershell
 git clone <repo-url>
@@ -36,18 +55,18 @@ cmake --build build --config Release
 
 CMake downloads JUCE automatically through `FetchContent`.
 
-The built VST3 bundle is generated here:
+The VST3 bundle is generated at:
 
 ```text
 build\F1DoGordo_artefacts\Release\VST3\F1 do Gordo.vst3
 ```
 
-## Install in FL Studio
+## Manual Install in FL Studio
 
-Copy the whole VST3 bundle folder:
+Copy the full VST3 bundle folder:
 
 ```text
-build\F1DoGordo_artefacts\Release\VST3\F1 do Gordo.vst3
+F1 do Gordo.vst3
 ```
 
 to:
@@ -56,30 +75,29 @@ to:
 C:\Program Files\Common Files\VST3
 ```
 
-You may need administrator permission to copy into `Program Files`.
-
 Then open FL Studio:
 
 1. Go to `Options > Manage plugins`.
-2. Confirm `C:\Program Files\Common Files\VST3` is included in the scan paths.
+2. Confirm `C:\Program Files\Common Files\VST3` is in the plugin search paths.
 3. Click `Find plugins`.
 4. Load `F1 do Gordo` on a Mixer Insert.
 
-## Release ZIP Install
+For release ZIP installation, see [INSTALL.md](INSTALL.md).
 
-For packaged releases, download the ZIP from the GitHub Release page, extract it, and follow [INSTALL.md](INSTALL.md).
+## Release Notes and Docs
 
-## Documentation
-
-Project documentation lives in `Docs/`:
-
+- [INSTALL.md](INSTALL.md)
+- [RELEASE_NOTES.md](RELEASE_NOTES.md)
 - [Docs/00-Home.md](Docs/00-Home.md)
-- [Docs/09-Roadmap.md](Docs/09-Roadmap.md)
-- [Docs/10-Changelog.md](Docs/10-Changelog.md)
 
-## Development Notes
+## Legal / Trademark Notice
 
-- `build/`, `Release/` and local reference audio are not committed.
-- `ReferenceAudio/` is local-only and must not be published.
-- APVTS parameter IDs are treated as a compatibility contract for automation and hardware mapping.
-- Before any public release, replace prototype/reference artwork with original final artwork.
+This project is independent. It is not affiliated with, sponsored by, endorsed by, approved by or associated with Ferrari, Formula 1, FIA, Thrustmaster, Waves, Valhalla DSP, Slate Digital or any other brand mentioned in the project.
+
+Any brand, product or plugin names mentioned in repository notes, discussions or development context are used only as descriptive references for study, sound-quality targets or artistic direction.
+
+The current visual artwork is temporary/prototype artwork. Fully original artwork will be required before any commercial distribution or final public release.
+
+No proprietary code, proprietary algorithm or commercial preset has been copied into this project.
+
+See [NOTICE.md](NOTICE.md) for the public notice summary.

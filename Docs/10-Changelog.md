@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.0-wheel-prototype
+
+- Wheel UI final integrada ao prototipo atual.
+- Ponteiros interativos.
+- APVTS direto para automacao e futuro hardware mapping.
+- Compressor, Air, Delay e Reverb simplificados para uso na Wheel.
+- Delay com RETURN/LEVEL e TIMING corrigidos.
+- Reverb refinado por A/B local.
+- ZIP de release gerado para GitHub Release.
+- Documentacao publica adicionada: README, INSTALL, RELEASE_NOTES e NOTICE.
+
 ## Timeline de fases e commits
 
 - `v0.1.0-wheel-prototype` Prepare wheel prototype release
@@ -26,12 +37,6 @@
 
 ## Marcos principais
 
-- Wheel prototype release checkpoint: versao documentada para GitHub Release e teste no FL Studio.
-- Wheel UI final integrada ao prototipo atual, com hotspots e ponteiros interativos.
-- Mapeamento direto da Wheel para APVTS, mantendo IDs estaveis para automacao.
-- Ajustes DSP acumulados no Compressor, Air e Reverb.
-- Delay corrigido para usar RETURN/LEVEL via `delaySend` e TIMING via `delayNoteDivision`.
-- Reverb refinado por A/B com referencia local em `ReferenceAudio/`, sem publicar WAVs.
 - Initial skeleton: base C++20/JUCE/CMake/VST3.
 - Build metadata: bundle ID e arquivos gerados ignorados.
 - APVTS controls: knobs e botoes ligados a parametros reais.
@@ -39,7 +44,7 @@
 - Compressor: FET compressor com threshold, ratio, attack, release, mix e GR.
 - Air: exciter com amount, mid/high air, intensity, density, dynamic, de-ess e output.
 - Delay: delay send interno com sync, modos, feedback, filtros, ducking, freeze e width.
-- Reverb: algoritmo funcional, porem marcado para revisao futura.
+- Reverb: algoritmo funcional e refinado para checkpoint, ainda em evolucao.
 - Factory default neutral: instancia nova deve abrir em unity/pass-through.
-- UI cockpit fases 8 a 8.4: evolucao visual para volante F1 interativo escuro/premium.
-- Documentation vault: organizacao Obsidian Markdown em `Docs/`, com arquitetura, APVTS, modulos, UI, hardware mapping, roadmap, changelog e ADRs.
+- UI Wheel: evolucao para volante interativo com hotspots e ponteiros rotativos.
+- Documentation vault: organizacao Markdown em `Docs/`, com arquitetura, APVTS, modulos, UI, hardware mapping, roadmap, changelog e ADRs.

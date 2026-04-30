@@ -1,8 +1,8 @@
 # F1 do Gordo Docs
 
-Este vault documenta o projeto **F1 do Gordo** para continuidade tecnica, historico de decisoes, arquitetura, testes e proximas fases.
+This vault documents **F1 do Gordo** for technical continuity, release checkpoints, architecture, testing and future phases.
 
-## Indice
+## Index
 
 - [[01-Project-Overview]]
 - [[02-Build-And-Test]]
@@ -15,7 +15,7 @@ Este vault documenta o projeto **F1 do Gordo** para continuidade tecnica, histor
 - [[09-Roadmap]]
 - [[10-Changelog]]
 
-## Modulos
+## Modules
 
 - [[modules/Channel-EQ]]
 - [[modules/FET-Compressor]]
@@ -23,35 +23,42 @@ Este vault documenta o projeto **F1 do Gordo** para continuidade tecnica, histor
 - [[modules/Delay]]
 - [[modules/Reverb]]
 
-## Decisoes
+## Decisions
 
 - [[decisions/0001-Use-JUCE-CMake-VST3]]
 - [[decisions/0002-Delay-No-DryWet-Output-Analog]]
 - [[decisions/0003-Factory-Default-Neutral]]
 - [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]]
 
-## Status atual
+## Current Checkpoint
 
-- Plugin VST3 compila em Release.
-- Host principal de validacao: FL Studio.
-- Factory default neutro: uma instancia nova deve soar praticamente igual ao bypass do slot. Ver [[decisions/0003-Factory-Default-Neutral]].
-- Checkpoint atual: `v0.1.0-wheel-prototype`.
-- Modulos funcionais/validados para checkpoint: [[modules/Channel-EQ]], [[modules/FET-Compressor]], [[modules/Air-Exciter]], [[modules/Delay]] e [[modules/Reverb]].
-- [[modules/Reverb]] foi refinado por A/B local e esta musical para prototipo, mas ainda continua em evolucao.
-- UI Wheel esta integrada com ponteiros interativos, hotspots e foco em hardware mapping.
-- IDs APVTS sao contrato de automacao/hardware mapping e devem permanecer estaveis. Ver [[04-Parameters-APVTS]] e [[07-Hardware-Mapping-Plan]].
-- `ReferenceAudio/` e local, ignorado pelo Git e nao deve ser publicado.
+Current checkpoint: `v0.1.0-wheel-prototype`.
 
-## Proximas prioridades
+This version documents the current public prototype state:
 
-1. Melhorar Delay inspirado em delay analogico/tape.
-2. Melhorar Compressor.
-3. Melhorar Air.
-4. Substituir arte de referencia/prototipo por arte original antes de release publico.
-5. Melhorar instalador e fluxo de GitHub Release.
+- Interactive Wheel UI.
+- Rotating pointer graphics.
+- Direct APVTS mapping for automation and future controller mapping.
+- Basic Compressor, Air, Delay and Reverb modules.
+- Public README, install guide, release notes and notices.
+- Release ZIP workflow for GitHub Releases.
 
-## Notas criticas
+## Current Status
 
-- Delay nao deve ter `dryWet`, `output` ou `analog`; a quantidade e controlada por `delaySend` / ECHO. Ver [[decisions/0002-Delay-No-DryWet-Output-Analog]].
-- A UI deve continuar host-automation/controller-mapping friendly. Ver [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]].
-- Esta versao e um checkpoint documentado; o projeto ainda vai evoluir bastante antes de um release publico final.
+- Plugin format: VST3.
+- Main validation host: FL Studio on Windows.
+- Factory default remains intended to be neutral/pass-through.
+- IDs APVTS are treated as a compatibility contract.
+- Reverb has been refined by local A/B work, but will continue to evolve.
+- `ReferenceAudio/` is local-only, ignored by Git and must not be published.
+
+## Next Major Phase
+
+The next major public-facing phase is replacing temporary/prototype visual artwork with fully original artwork that has no dependency on real-world brands or protected visual identities.
+
+## Critical Notes
+
+- This is a development checkpoint, not a final commercial release.
+- The project will continue to evolve in DSP, presets, artwork, release packaging and host compatibility.
+- Delay amount is controlled by `delaySend` / RETURN, not a separate `dryWet`, `output` or `analog` parameter. See [[decisions/0002-Delay-No-DryWet-Output-Analog]].
+- The UI must remain host-automation/controller-mapping friendly. See [[decisions/0004-F1-Wheel-UI-And-Hardware-Mapping]].

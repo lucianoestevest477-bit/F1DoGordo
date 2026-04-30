@@ -1,50 +1,37 @@
 # Roadmap
 
-## Checkpoint atual
+## Current Checkpoint
 
 Status: `v0.1.0-wheel-prototype`.
 
-Esta versao salva a Wheel UI funcional como checkpoint estavel para teste interno e GitHub Release. O projeto ainda vai evoluir em DSP, arte, instalador e polimento geral.
+This version saves the functional Wheel UI prototype as a stable development checkpoint for GitHub and FL Studio testing. The project is still experimental and will continue to evolve before any final public or commercial release.
 
-`ReferenceAudio/` e uma pasta local de trabalho para A/B e nao deve ser publicada ou commitada.
+`ReferenceAudio/` is a local A/B development folder and must not be published or committed.
 
-## Fase 9: Documentacao
+## Next Phases
 
-Status: concluida inicialmente em `7f0a6b9 Add Obsidian documentation vault`; este vault deve ser mantido vivo a cada fase.
+- Original artwork with no visual dependency on real-world brands.
+- Professional Delay inspired by analog/tape-style behavior.
+- More professional and predictable Compressor behavior.
+- Air polish.
+- Reverb polish using A/B references.
+- Presets.
+- Real A/B.
+- SAVE / preset manager.
+- Official installer.
+- Testing in additional hosts.
+- CPU optimization.
 
-- Criar Obsidian vault em `Docs/`.
-- Documentar arquitetura, parametros, modulos, UI, hardware mapping e decisoes.
-- Revisar documentacao sempre que parametros, fluxo, UI ou comportamento mudarem.
+## Documentation
 
-## Fase 10: Hardware Mapping
+- Keep this vault updated whenever parameters, automation behavior, UI behavior, DSP or release packaging changes.
+- Keep APVTS IDs stable unless a breaking-change phase is explicitly planned.
+- Document release checkpoints in [[10-Changelog]].
 
-- Definir estrategia de mapeamento.
-- Validar nomes de automacao no FL Studio.
-- Criar guia de mapeamento para volante/controlador.
+## Release Hygiene
 
-## Fase 11: Presets
-
-- Criar arquitetura inicial de presets.
-- Presets devem respeitar factory default neutro.
-- Evitar nomes/copias de produtos comerciais.
-
-## Fase 12: Reverb V2
-
-- Continuar refinando ReverbModule a partir do checkpoint A/B.
-- Buscar um reverb digital simples, claro, estavel e mais profissional.
-- Preservar IDs existentes sempre que possivel.
-- Documentar qualquer mudanca em [[08-Reverb-Issues-And-Future-Fix]].
-
-## Fase 13: Polimento final UI
-
-- Ajustar legibilidade.
-- Conferir 1200x700.
-- Refinar contraste e estados ON/OFF.
-- Verificar que todos os controles principais seguem hardware mapping friendly.
-
-## Fase 14: Installer / Release package
-
-- Definir empacotamento VST3.
-- README de instalacao.
-- Versao e changelog de release.
-- Testes finais no FL Studio.
+- Do not commit `build/`.
+- Do not commit `Release/`.
+- Do not commit `ReferenceAudio/`.
+- Do not commit WAV/MP3/FLAC reference files.
+- Do not publish prototype/reference artwork as final commercial artwork.
